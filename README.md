@@ -1,3 +1,3 @@
 # blog
 
-Gissin's blog...
+Daniel Gissin's blog
