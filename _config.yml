@@ -12,6 +12,9 @@ github_username: dsgissin
  # shortname: GissinBlog
 #
 
+tag_page_layout: tagpage
+tag_page_dir: tag
+
 excerpt_separator: <!--more-->
 markdown: kramdown
 theme: minima
@@ -20,3 +23,4 @@ plugins:
   - jekyll-redirect-from
   - jekyll-seo-tag
   - jekyll-sitemap
+  - jekyll-tagging
