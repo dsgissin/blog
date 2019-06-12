@@ -1,0 +1,22 @@
+title: Daniel Gissin's Blog
+author: Daniel Gissin
+description: >- 
+  Daniel Gissin's ML Blog
+baseurl: "/blog"
+url: "https://dsgissin.github.io/" 
+github_username: dsgissin
+
+# google_analytics: UA-122375369-1
+
+#disqus:
+ # shortname: GissinBlog
+#
+
+excerpt_separator: <!--more-->
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-redirect-from
+  - jekyll-seo-tag
+  - jekyll-sitemap
