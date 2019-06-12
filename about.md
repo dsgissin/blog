@@ -15,9 +15,7 @@ permalink: /about/
 </figure>
 <div style="font-size:80%; text-align:center;">
 This is how I look
-</div>
-
-\
+</div>  
 
 I'm Daniel, currently working on my master's at [HUJI][huji] under the supervision of [Prof. Shai Shalev-Shwartz][shai]. I'm using this blog to document my thoughts, notes and research directions. You're welcome to contact me at dsgissin AT gmail dot com if you find any errors or have any questions.
 
