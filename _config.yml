@@ -1,7 +1,11 @@
 title: Daniel Gissin's Blog
 author: Daniel Gissin
-description: >- 
+description: > # this means to ignore newlines until "show_exerpts:"
   Daniel Gissin's ML Blog
+
+show_excerpts: true
+excerpt_separator: <!--more-->
+
 baseurl: "/blog"
 url: "https://dsgissin.github.io/" 
 github_username: dsgissin
@@ -12,15 +16,40 @@ github_username: dsgissin
  # shortname: GissinBlog
 #
 
-tag_page_layout: tagpage
-tag_page_dir: tag
+# Minima date format
+# refer to https://shopify.github.io/liquid/filters/date/ if you want to customize this
+minima:
+  date_format: "%b %-d, %Y"
 
-excerpt_separator: <!--more-->
+  # generate social links in footer
+  social_links:
+    github:  dsgissin
+    # rss: rss
+    # dribbble: jekyll
+    # facebook: jekyll
+    # flickr:   jekyll
+    # instagram: jekyll
+    linkedin: www.linkedin.com/in/daniel-gissin-a9771a103
+    # pinterest: jekyll
+    # youtube: jekyll
+    # youtube_channel: UC8CXR0-3I70i1tfPg1PAE1g
+    # youtube_channel_name: CloudCannon
+    # telegram: jekyll
+    # googleplus: +jekyll
+    # microdotblog: jekyll
+
+# If you want to link only specific pages in your header, uncomment
+# this and add the path to the pages in order as they should show up
+header_pages:
+ - about.md
+ - tags.html
+
+# Build settings
 markdown: kramdown
 theme: minima
+
 plugins:
   - jekyll-feed
   - jekyll-redirect-from
   - jekyll-seo-tag
   - jekyll-sitemap
-  - jekyll-tagging
