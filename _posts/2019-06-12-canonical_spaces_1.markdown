@@ -69,7 +69,7 @@ However, the model after a parameteric gradient step will be (ignoring second or
 
 $$\hat{f} = (v - \eta \ell^{'} v^{'})^{T}(U - \eta \ell^{'} U^{'}) = U^{T}v - \eta \ell^{'} (U^{T}Ux + v^{T}vx) = U^{T}v - \eta \ell^{'} (U^{T}Ux + ||v||^{2}x) $$
 
-And look at this - we already know that the deep parameterization affects the norm of the gradient, but now we see that **the deep parameterization also affects the direction of the gradient**. The direction of the canonical gradient is along the axis defined by the input $$x$$, but the parameteric gradient is along the axis of the vector $$U^{T}Ux + ||v||^{2}x$$.
+And look at this - we already know that the deep parameterization affects the norm of the gradient, but now we see that **the deep parameterization also affects the direction of the gradient**. The direction of the canonical gradient is along the axis defined by the input $$x$$, but the parameteric gradient is along the axis of the vector $$U^{T}Ux +  \left\lVert v\right\rVert^{2}x$$.
 
 ### A Variety of Parametric Gradients
 
@@ -133,7 +133,7 @@ In practice, when the neural network is large enough and the initialization is g
 
 Just like we explored the loss landscape using $$\frac{\partial \theta}{\partial W}$$, we can do the same sort of analysis to explain more generally why there are exploding and vanishing gradients.
 
-Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable to believe (and it is the case in practice) that there are many $$W$$s for which the operator norm of $$\frac{\partial \theta}{\partial W}$$ is very large or very small. In such cases even though the canonical gradient is of a reasonable norm (assuming $$||x||$$ is bounded), we could have $$\frac{\partial \theta}{\partial W}$$ increase/decrease the norm of the gradient considerably, causing the gradient to vanish or explode.
+Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable to believe (and it is the case in practice) that there are many $$W$$s for which the operator norm of $$\frac{\partial \theta}{\partial W}$$ is very large or very small. In such cases even though the canonical gradient is of a reasonable norm (assuming $$x$$ has bounded norm), we could have $$\frac{\partial \theta}{\partial W}$$ increase/decrease the norm of the gradient considerably, causing the gradient to vanish or explode.
 
 ## Further Reading
 
