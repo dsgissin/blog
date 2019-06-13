@@ -47,7 +47,10 @@ header_pages:
 # Build settings
 markdown: kramdown
 theme: minima
-
+kramdown:
+  input: GFM
+  auto_ids: true
+  
 plugins:
   - jekyll-feed
   - jekyll-redirect-from
