@@ -5,13 +5,13 @@ comments: true
 tags: optimization deep-learning
 ---
 
-> Excerpt Here
+> Deep, over-parameterized networks have a crazy loss landscape and it's hard to say why SGD works so well on them. Looking at a canonical parameter space may help.
 
 <!--more-->
 
 Recently, there have been some interesting research directions for studying neural networks by looking at the connection between their parameterization and the function they represent. Understanding the connection between these two representations of neural networks can help us understand why SGD works well in optimizing these networks, and hopefully why SGD and over-parameterization seem to lead to strong generalization...
 
-In this blog series I'll review some of these concepts and develop some interesting ideas for how we can use this view to try and develop new optimization algorithms for neural networks.
+In this blog series I'll review some of these concepts using toy examples, and develop some interesting ideas for how we can use this view to try and develop new optimization algorithms for neural networks.
 
 {: class="table-of-content"}
 * TOC
@@ -67,7 +67,77 @@ $$\hat{f} = w - \eta \ell^{'}x$$
 
 However, the model after a parameteric gradient step will be (ignoring second order terms of $$\eta$$):
 
-$$\hat{f} = (v - \eta v^{'})^{T}(U - \eta U^{'}) = U^{T}v - \eta (U^{T}Ux + v^{T}vx) = U^{T}v - \eta (U^{T}Ux + ||v||^{2}x) $$
+$$\hat{f} = (v - \eta \ell^{'} v^{'})^{T}(U - \eta \ell^{'} U^{'}) = U^{T}v - \eta \ell^{'} (U^{T}Ux + v^{T}vx) = U^{T}v - \eta \ell^{'} (U^{T}Ux + ||v||^{2}x) $$
+
+And look at this - we already know that the deep parameterization affects the norm of the gradient, but now we see that **the deep parameterization also affects the direction of the gradient**. The direction of the canonical gradient is along the axis defined by the input $$x$$, but the parameteric gradient is along the axis of the vector $$U^{T}Ux + ||v||^{2}x$$.
+
+### A Variety of Parametric Gradients
+
+Taking the example above, it is interesting to explore how varied the direction and norm of the gradient can be, depending on the parameterization of the same function. There is a general transformation to the parameters of the deep model that we can look at that make the function remain the same - if we multiply $$v$$ by some invertible matrix $$P$$, and multiply $$U$$ by it's inverse, we are left with the same function we started with:
+
+$$(P^{-T}v)^{T}PU = v^{T}P^{-1}PU = v^{T}U$$
+
+Now, this means that while a given function has a canonical gradient with a unique direction and norm, that same function in a two-layer parameterization can have many possible gradient directions and norms - any defined by an invertible $$P$$:
+
+$$(U^{T}P^{T}PU + ||P^{-T}v||^{2}I)x$$
+
+Basically, by choosing the right $$P$$ we can get a gradient to point anywhere we want in the positive halfspace of $$x$$ (since the matrix multiplying $$x$$ is PSD)!
+
+This is very interesting. The canonical space of functions we are working with is linear and we know a lot about how optimization works in it (namely, we can easily prove convergence for convex losses). However, once we over-parameterize a little we get completely different optimization dynamics which are much harder to deal with theoretically. These over-parameterized gradient dynamics depend on the parameterization at every time step, which means that if we want to guarantee convergence **we have to pay attention to the entire trajectory of the optimization**...
+
+### Take-Aways From the Linear Example
+
+This 2-layer linear example is far from a deep convolutional ReLU network, but we can already see interesting phenomena in this example that exist in optimization of real networks.
+
+The main thing we can gather from this example is the **importance of balance netween the norms of the layers** at initialization and during the optimization process. Looking at the parameteric gradient, if the norm of $$v$$ is much larger than the norm of $$U$$, then the gradient of the function will be huge (and the same goes for large $$U$$ and small $$v$$). This means we need to initialize the parameters such that they have similar norms, like we do in practice. This generalizes to real neural networks as the exploding/vanishing gradient problem...
+
+Another interesting thing we can gather, is the $$possible importance of learning rate decay for deep models$$. For example, if the minimum of our loss function was some linear function with a very large $$\ell_{2}$$ norm, than a large learning rate could cause the dynamics to blow up when the parameters become large (since the gradient norm grows with the parameters). However, a small learning rate would take a very long time to converge. This suggests a learning rate schedule that is correlated with the norm of our model (more on that later).
+
+## A More General View
+
+In the next post I'll be exploring non-linear neural networks, but before we get there we should take a step back and try to generalize what we just saw for deep linear networks.
+
+We had two ways of looking at the same family of functions. The first was a canonical parameterization, where every function in our family had a unique parameterization and the function space was linear. The second was an over-parameterized representation, where every function in our family had many possible parameterizations. We also had a non-linear mapping from the parameteric space to the canonical one. Let's define the canonical parameters as $$\Theta=\mathbb{R}^{q}$$ and the deep parmeterization's parameters as $$\mathcal{W}=\mathbb{R}^{p}$$. The mapping between some $$W$$ and some $$\theta$$ can be written as $$\Psi:\mathcal{{W} \rightarrow \Theta$$.
+
+So far we looked at how the gradients behave in the two spaces for the linear 2-layer example, but it should be interesting to see more generally how the loss landscape looks like between the two spaces.
+
+### The Loss Landscape
+
+The first thing we care about in a loss landscape, is where are the critical points and are they well behaved?
+
+For the canonical representation, if we assume that the functions in this representation are linear (like in our example and in future examples), then if the loss is convex we are very happy - there is a unique minimum to our function and we are guaranteed to reach it using SGD! 
+
+Note that a linear canonical space is relevant for any kernel function simply by looking at the reproducing Hilbert space of the kernel. This space may be infinite-dimensional, but let's not worry about that too much for now...
+
+As for the parametric representation, things aren't necessarily as simple. As a quick example, we can look back at out linear example where $$U=0$$ and $$v=0$$. Looking at the gradients, this is a critial point of the loss landscape no matter what loss we have, and it generally isn't a minimum (it's a saddle point when the optimal function isn't the zero function). So, if the canonical space has a unique critical point (the global minimum) but the parameteric space has more than one critial point - where did the additional critical points come from?
+
+Well, we know how the two parameterizations are connected - they are connected by $$\Psi$$. So, we can look like before at the gradients in the two spaces and ask when they are zero:
+
+$$\frac{\partial f}{\partial W} = \frac{\partial \Psi(W)}{\partial W}\frac{\partial f}{\partial \Psi(W)} = \frac{\partial \theta}{\partial W}\frac{\partial f}{\partial \theta}$$
+
+For a given parameterization $$W$$, the canonical and parameteric gradients are connected by a linear transformation define by the matrix $$\frac{\partial \theta}{\partial W} \in \mathbb{R}^{p \times q}$$. We immediately see that if $$\Psi(W)$$ maps to the unique global minimum of the canonical space, then we are at also at a critical point (a global minimum) of the parameteric space, since the $$\frac{\partial f}{\partial W} = 0$$. This is a nice sanity check...
+
+However, the additional critical points come up in the situations where $$\frac{\partial f}{\partial W} = 0$$ while $$\frac{\partial f}{\partial \Psi(W)} \ne 0$$. This can happen for $$W$$s where **the linear transformation between the two gradients is not full rank**. In such a case, $$\frac{\partial \theta}{\partial W}$$ has a non-empty kernel and non-zero canonical gradients can be mapped to zero parameteric gradients, which means that we get a critical point where there is no such critical point in the canonical space.
+
+### The Formation of "Ghost" Saddle Points
+
+So, For which $$W$$ is $$\frac{\partial \theta}{\partial W}$$ of partial rank?
+
+To understand this, we need to more explicitly define $$\frac{\partial \theta}{\partial W}$$. Every column of this matrix defines how a single entry of $$W$$ changes every entry of $$\theta$$. If a set of these columns is linearly dependent, or equal to zero, the matrix can be of partial rank.
+
+This happens for example when two row vectors of the same weight matrix in a neural network are identical/parallel (meaning two neurons are identical) - in such a case the two sets of columns will be linearly dependent. Another example can be "dead neurons" in ReLU networks - these neurons are always zero and so the outgoing weights from them don't effect the actual model (and so their column is a zero vector).
+
+In practice, when the neural network is large enough and the initialization is good, we don't see this happening and the network is able to converge to a global minimum (with a loss of zero). Hui Jiang build on the above kind of reasoning in his [paper][Jiang] to explain why highly expressive neural networks don't get stuck in local minima even though there are so many in the loss landscape.
+
+### The Exploding and Vanishing Gradients Problem
+
+Just like we explored the loss landscape using $$\frac{\partial \theta}{\partial W}$$, we can do the same sort of analysis to explain more generally why there are exploding and vanishing gradients.
+
+Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable to believe (and it is the case in practice) that there are many $$W$$s for which the operator norm of $$\frac{\partial \theta}{\partial W}$$ is very large or very small. In such cases even though the canonical gradient is of a reasonable norm (assuming $$||x||$$ is bounded), we could have $$\frac{\partial \theta}{\partial W}$$ increase/decrease the norm of the gradient considerably, causing the gradient to vanish or explode.
+
+## Further Reading
+
+TODO: explain how these ideas are used to explain why SGD should work and under which assumptions (balancedness and so on) - Nadav's work, Jiang's work, The ReLU work...
 
 
-
+[Jiang]: https://arxiv.org/abs/1903.02140
