@@ -19,7 +19,7 @@ In this blog series I'll review some of these concepts and develop some interest
 
 ## Over-Parameterization
 
-Neural networks are over-parameterized, meaning the same function can be represented by different sets of parameters of the same architecture. We can look at a simple example to demonstrate this - a two-layer linear neural network parameterized by the vector \\(v \in \mathbb{R}^{d}\\) and the matrix \\(U \in \mathbb{R}^{d \times d}\\):
+Neural networks are over-parameterized, meaning the same function can be represented by different sets of parameters of the same architecture. We can look at a simple example to demonstrate this - a two-layer linear neural network parameterized by the vector $$v$$ and the matrix \\(U \in \mathbb{R}^{d \times d}\\):
 
 $$ f(x)=v^{T}Ux $$
 
