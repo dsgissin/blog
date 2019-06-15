@@ -155,6 +155,12 @@ In Hui Jiang's [paper][Jiang], the analysis of $$\frac{\partial \theta}{\partial
 
 Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks in order to start showing the connection between the parameteric space and canonical space (referred to as "realization space") for an actual neural network. The main result shows "inverse stability" of the shallow neural network under certain, mild conditions on the weights. Informally, inverse stability is the property such that for a given parameterization $$W$$ and it's corresponding canonical representation $$\theta$$, all close canonical representations to $$\theta$$ have a corresponding parametric representation near $$W$$. Such a property suggests that optimizing in the parameteric space should behave like optimization in the canonical space. Another interesting thing in this paper, is the fact that there is explicit discussion of the fact that while the canonical space is linear (as we saw throughout this blog), shallow ReLU networks aren't expressive enough to fill that entire space. This means that the optimization objective in the canonical space is a convex loss function with a non-convex feasible set of solutions. We'll see another, more digestible example of this in the next blog post.
 
+---
+---
+<sub></sub>
+
+## Footnotes
+
 [^halfspace]: The restriction to the halfspace of $$x$$ is true when $$\eta$$ is infinitesimal, otherwise we can't neglect the $$\eta^{2}$$ term. In such a situation, which is what we see in actual SGD, the learning rate also plays a role in determining the direction of the gradient step. Also, large learning rates could even cause the gradient to step out of the halfspace of the canonical gradient, leading to a gradient step negatively correlated to the canonical one.
 [^kernel]: Note that a linear canonical space is relevant for any kernel function simply by looking at the reproducing Hilbert space of the kernel. This means that we can mostly be safe in saying that there is some canonical representation which is linear. This space may be infinite-dimensional, but let's not worry about that too much for now...
 
