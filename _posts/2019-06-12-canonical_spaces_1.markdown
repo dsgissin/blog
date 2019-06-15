@@ -81,7 +81,7 @@ Now, this means that while a given function has a canonical gradient with a uniq
 
 $$(U^{T}P^{T}PU + ||P^{-T}v||^{2}I)x$$
 
-Basically, by choosing the right $$P$$ we can get a gradient to point anywhere we want in the positive halfspace of $$x$$ (since the matrix multiplying $$x$$ is PSD)!
+Basically, by choosing the right $$P$$ we can get a gradient to point anywhere we want in the positive halfspace of $$x$$ (since the matrix multiplying $$x$$ is PSD)![^halfspace]
 
 This is very interesting. The canonical space of functions we are working with is linear and we know a lot about how optimization works in it (namely, we can easily prove convergence for convex losses). However, once we over-parameterize a little we get completely different optimization dynamics which are much harder to deal with theoretically. These over-parameterized gradient dynamics depend on the parameterization at every time step, which means that if we want to guarantee convergence **we have to pay attention to the entire trajectory of the optimization**...
 
@@ -105,9 +105,7 @@ So far we looked at how the gradients behave in the two spaces for the linear 2-
 
 The first thing we care about in a loss landscape, is where are the critical points and are they well behaved?
 
-For the canonical representation, if we assume that the functions in this representation are linear (like in our example and in future examples), then if the loss is convex we are very happy - there is a unique minimum to our function and we are guaranteed to reach it using SGD! 
-
-Note that a linear canonical space is relevant for any kernel function simply by looking at the reproducing Hilbert space of the kernel. This space may be infinite-dimensional, but let's not worry about that too much for now...
+For the canonical representation, if we assume that the functions in this representation are linear (like in our example and in future examples), then if the loss is convex we are very happy - there is a unique minimum to our function and we are guaranteed to reach it using SGD![^kernel]
 
 As for the parametric representation, things aren't necessarily as simple. As a quick example, we can look back at out linear example where $$U=0$$ and $$v=0$$. Looking at the gradients, this is a critial point of the loss landscape no matter what loss we have, and it generally isn't a minimum (it's a saddle point when the optimal function isn't the zero function). So, if the canonical space has a unique critical point (the global minimum) but the parameteric space has more than one critial point - where did the additional critical points come from?
 
@@ -137,7 +135,31 @@ Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable 
 
 ## Further Reading
 
-TODO: explain how these ideas are used to explain why SGD should work and under which assumptions (balancedness and so on) - Nadav's work, Jiang's work, The ReLU work...
+This sort of comparison between deep and canonical representations is used to both understand why neural networks are able to reach global minima of the loss landscape, and recently to start showing why they generalize well. In the next posts we'll try exploring how we can develop optimization algorithms using this view, that hopefully perform better than SGD on the deep representation.
 
+### Deep Linear Networks
 
-[Jiang]: https://arxiv.org/abs/1903.02140
+A few papers from Sanjeev Arora and Nadav Cohen, along with other collaborators, address the dynamics of optimizing deep linear networks (deeper than our linear example). 
+
+The [first paper][Nadav1] studies depth and it's effect on optimization. It shows that under certain assumptions on the weight initialization, depth acts as a preconditioning matrix at every gradient step (similar to the PSD matrix we saw in our small example). They also show that this kind of preconditioning cannot be attained by regularizing some type of norm of the canonical model - over-parameterization it is a different kind of animal.
+
+In the [second paper][Nadav2], the authors extend their results and show a convergence proof for deep linear networks under reasonable conditions on the random initialization.
+
+In their recent, [third paper][Nadav3], they move to studying generalization by showing that depth biases the optimization towards low rank solutions for a matrix completion/sensing task. There have been previous results showing that SGD creates this sort of bias and it is a strong belief today that SGD is a main factor in the generalization of neural networks. This work shows that not only does SGD bias us towards simple solutions, but that over-parameterization may also be a factor. As in the first paper, their results suggest that depth is a different animal than regularizing a norm (nuclear or otherwise), being more biased towards low rank than norm regularizations.
+
+### Non-Linear Networks
+
+This sort of analysis is very nice for linear networks where we can clearly define the canonical representation, which happens to be linear and behaves nicely. However, when we move to deep ReLU networks for example, we don't even know how to properly describe the canonical representation, and it is incredibly high dimensional. Still, there are a couple of works that try to use the connection between the two spaces to explain why SGD works in the deep representation.
+
+In Hui Jiang's [paper][Jiang], the analysis of $$\frac{\partial \theta}{\partial W}$$ (refered to as the "disparity matrix") is used to explore the loss landscape of general neural networks, assuming they are expressive enough. The canonical representation that is used is the Fourier representation of functions over the input space (which is also linear and nicely behaved). Assuming the family of neural networks $$\epsilon$$-convers that Fourier space (a strong assumption), this suggests that under a random initialization it would be very hard to have the diparity matrix not be full rank, and therefore we shouldn't be surprised that optimizing with SGD finds the global minimum.
+
+Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks in order to start showing the connection between the parameteric space and canonical space (referred to as "realization space") for an actual neural network. The main result shows "inverse stability" of the shallow neural network under certain, mild conditions on the weights. Informally, inverse stability is the property such that for a given parameterization $$W$$ and it's corresponding canonical representation $$\theta$$, all close canonical representations to $$\theta$$ have a corresponding parametric representation near $$W$$. Such a property suggests that optimizing in the parameteric space should behave like optimization in the canonical space. Another interesting thing in this paper, is the fact that there is explicit discussion of the fact that while the canonical space is linear (as we saw throughout this blog), shallow ReLU networks aren't expressive enough to fill that entire space. This means that the optimization objective in the canonical space is a convex loss function with a non-convex feasible set of solutions. We'll see another, more digestible example of this in the next blog post.
+
+[^halfspace]: The restriction to the halfspace of $$x$$ is true when $$\eta$$ is infinitesimal, otherwise we can't neglect the $$\eta^{2}$$ term. In such a situation, which is what we see in actual SGD, the learning rate also plays a role in determining the direction of the gradient step. Also, large learning rates could even cause the gradient to step out of the halfspace of the canonical gradient, leading to a gradient step negatively correlated to the canonical one.
+[^kernel]: Note that a linear canonical space is relevant for any kernel function simply by looking at the reproducing Hilbert space of the kernel. This means that we can mostly be safe in saying that there is some canonical representation which is linear. This space may be infinite-dimensional, but let's not worry about that too much for now...
+
+[Jiang]: https://arxiv.org/pdf/1903.02140.pds
+[Nadav1]: https://arxiv.org/pdf/1802.06509.pdf
+[Nadav2]: https://arxiv.org/pdf/1810.02281.pdf
+[Nadav3]: https://arxiv.org/pdf/1905.13655.pdf
+[Julius]: https://arxiv.org/pdf/1905.09803.pdf
