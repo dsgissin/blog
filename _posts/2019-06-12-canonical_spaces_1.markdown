@@ -19,7 +19,7 @@ In this blog series I'll review some of these concepts using toy examples, and d
 
 ## Over-Parameterization
 
-Neural networks are over-parameterized, meaning the same function can be represented by different sets of parameters of the same architecture. We can look at a simple example to demonstrate this - a two-layer linear neural network parameterized by the vector $$v$$ and the matrix $$U \in \mathbb{R}^{d \times d}$$:
+Neural networks are over-parameterized, meaning the same function can be represented by different sets of parameters of the same architecture. We can look at a simple example to demonstrate this - a two-layer linear neural network parameterized by the vector $$v \in \mathbb{R}^{d}$$ and the matrix $$U \in \mathbb{R}^{d \times d}$$, where out input is in $$\mathbb{R}^{d}$$:
 
 $$ f(x)=v^{T}Ux $$
 
@@ -41,11 +41,11 @@ Note that we can't map back from the canonical space to the parameteric, because
 
 ### Gradient Dynamics Between Spaces
 
-Now that we've established these two spaces, both essentially representing the same functions, we can compare their gradient dynamics. Given an example $$x \in \mathbb{R}^{d}$$ and our convex loss function $$\ell(f(x),y)$$, we can write down the gradient of the loss with respect to the general parameters \theta:
+Now that we've established these two spaces, both essentially representing the same functions, we can compare their gradient dynamics. Given an example $$x \in \mathbb{R}^{d}$$ and our convex loss function $$\ell(f(x),y)$$, we can write down the gradient of the loss with respect to the general parameters $$\theta$$ using the chain rule:
 
 $$\frac{\partial \ell}{\partial \theta}=\frac{\partial \ell}{\partial f}\frac{\partial f}{\partial \theta}$$
 
-We see that the parameters are only present in the derivative of the function $$f$$, so we can ignore the gradient of the loss and focus the two parameterizations. For the canonical space, the gradient is just the gradient of a linear function:
+We see that the parameters are only present in the derivative of the function $$f$$, so we can ignore the gradient of the loss and focus on the gradient of $$f$$ under the two different parameterizations. For the canonical space, the gradient is just the gradient of a linear function:
 
 $$f(x) = w^{T}x$$
 
@@ -73,13 +73,13 @@ And look at this - we already know that the deep parameterization affects the no
 
 ### A Variety of Parametric Gradients
 
-Taking the example above, it is interesting to explore how varied the direction and norm of the gradient can be, depending on the parameterization of the same function. There is a general transformation to the parameters of the deep model that we can look at that make the function remain the same - if we multiply $$v$$ by some invertible matrix $$P$$, and multiply $$U$$ by it's inverse, we are left with the same function we started with:
+Looking at the example above, it is interesting to explore how varied the direction and norm of the gradient can be, depending on the parameterization of the same function. There is a general transformation to the parameters of the deep model that we can look at that make the function remain the same - if we multiply $$U$$ by some invertible matrix $$P$$, and multiply $$v$$ by it's inverse, we are left with the same function we started with:
 
 $$(P^{-T}v)^{T}PU = v^{T}P^{-1}PU = v^{T}U$$
 
-Now, this means that while a given function has a canonical gradient with a unique direction and norm, that same function in a two-layer parameterization can have many possible gradient directions and norms - any defined by an invertible $$P$$:
+Now, this means that while a given function has a canonical gradient with a unique direction and norm, that same function in a two-layer parameterization can have many possible gradient directions and norms - each defined by an invertible $$P$$:
 
-$$(U^{T}P^{T}PU + ||P^{-T}v||^{2}I)x$$
+$$\nabla f = (U^{T}P^{T}PU + ||P^{-T}v||^{2}I)x$$
 
 Basically, by choosing the right $$P$$ we can get a gradient to point anywhere we want in the positive halfspace of $$x$$ (since the matrix multiplying $$x$$ is PSD)![^halfspace]
 
@@ -89,15 +89,15 @@ This is very interesting. The canonical space of functions we are working with i
 
 This 2-layer linear example is far from a deep convolutional ReLU network, but we can already see interesting phenomena in this example that exist in optimization of real networks.
 
-The main thing we can gather from this example is the **importance of balance netween the norms of the layers** at initialization and during the optimization process. Looking at the parameteric gradient, if the norm of $$v$$ is much larger than the norm of $$U$$, then the gradient of the function will be huge (and the same goes for large $$U$$ and small $$v$$). This means we need to initialize the parameters such that they have similar norms, like we do in practice. This generalizes to real neural networks as the exploding/vanishing gradient problem...
+The main thing we can gather from this example is the **importance of balance netween the norms of the layers** at initialization and during the optimization process. Looking at the parameteric gradient, $$(U^{T}U + \left\lVert v\right\rVert^{2}I)x$$, if either the norm of $$v$$ or the norm of $$U$$ is very large, then the gradient of the function will be huge even if the other's norm is small. This means we need to initialize the parameters such that they have similar norms, like we do in practice. This issue arrises in real neural networks as the exploding/vanishing gradient problem...
 
-Another interesting thing we can gather, is the $$possible importance of learning rate decay for deep models$$. For example, if the minimum of our loss function was some linear function with a very large $$\ell_{2}$$ norm, than a large learning rate could cause the dynamics to blow up when the parameters become large (since the gradient norm grows with the parameters). However, a small learning rate would take a very long time to converge. This suggests a learning rate schedule that is correlated with the norm of our model (more on that later).
+Another interesting thing we can gather, is the **possible importance of learning rate decay for deep models**. For example, if the minimum of our loss function was some linear function with a very large $$\ell_{2}$$ norm, than a large learning rate could cause the dynamics to blow up when the parameters become large (since the gradient norm grows with the parameters). However, a small learning rate would take a very long time to converge. This suggests a new motivation for learning rate schedules that stems from the effects of the norm of our model on the gradient norm.
 
 ## A More General View
 
 In the next post I'll be exploring non-linear neural networks, but before we get there we should take a step back and try to generalize what we just saw for deep linear networks.
 
-We had two ways of looking at the same family of functions. The first was a canonical parameterization, where every function in our family had a unique parameterization and the function space was linear. The second was an over-parameterized representation, where every function in our family had many possible parameterizations. We also had a non-linear mapping from the parameteric space to the canonical one. Let's define the canonical parameters as $$\Theta=\mathbb{R}^{q}$$ and the deep parmeterization's parameters as $$\mathcal{W}=\mathbb{R}^{p}$$. The mapping between some $$W$$ and some $$\theta$$ can be written as $$\Psi:\mathcal{W} \rightarrow \Theta$$.
+We had two ways of looking at the same family of functions. The first was a canonical parameterization, where every function in our family had a unique parameterization and the function space was linear. The second was an over-parameterized representation, where every function in our family had many possible parameterizations. We also had a non-linear mapping from the parameteric space to the canonical one. Let's define the canonical parameters as $$\Theta \subset \mathbb{R}^{q}$$ and the deep parmeterization's parameters as $$\mathcal{W} \subset \mathbb{R}^{p}$$. The mapping between a deep parameterization $$W$$ and it's corresponding $$\theta$$ can be written as $$\psi:\mathcal{W} \rightarrow \Theta$$.
 
 So far we looked at how the gradients behave in the two spaces for the linear 2-layer example, but it should be interesting to see more generally how the loss landscape looks like between the two spaces.
 
@@ -109,13 +109,13 @@ For the canonical representation, if we assume that the functions in this repres
 
 As for the parametric representation, things aren't necessarily as simple. As a quick example, we can look back at out linear example where $$U=0$$ and $$v=0$$. Looking at the gradients, this is a critial point of the loss landscape no matter what loss we have, and it generally isn't a minimum (it's a saddle point when the optimal function isn't the zero function). So, if the canonical space has a unique critical point (the global minimum) but the parameteric space has more than one critial point - where did the additional critical points come from?
 
-Well, we know how the two parameterizations are connected - they are connected by $$\Psi$$. So, we can look like before at the gradients in the two spaces and ask when they are zero:
+Well, we know how the two parameterizations are connected - they are connected by $$\psi$$. So, we can look like before at the gradients in the two spaces and ask when they are zero. Using the chain rule and the fact that $$\psi(W)=\theta$$:
 
-$$\frac{\partial f}{\partial W} = \frac{\partial \Psi(W)}{\partial W}\frac{\partial f}{\partial \Psi(W)} = \frac{\partial \theta}{\partial W}\frac{\partial f}{\partial \theta}$$
+$$\frac{\partial f}{\partial W} = \frac{\partial \psi(W)}{\partial W}\frac{\partial f}{\partial \psi(W)} = \frac{\partial \theta}{\partial W}\frac{\partial f}{\partial \theta}$$
 
-For a given parameterization $$W$$, the canonical and parameteric gradients are connected by a linear transformation define by the matrix $$\frac{\partial \theta}{\partial W} \in \mathbb{R}^{p \times q}$$. We immediately see that if $$\Psi(W)$$ maps to the unique global minimum of the canonical space, then we are at also at a critical point (a global minimum) of the parameteric space, since the $$\frac{\partial f}{\partial W} = 0$$. This is a nice sanity check...
+For a given parameterization $$W$$, we see that the canonical and parameteric gradients are connected by a linear transformation define by the matrix $$\frac{\partial \theta}{\partial W} \in \mathbb{R}^{p \times q}$$. This immediately implies that if $$\psi(W)$$ maps to the unique global minimum of the canonical space, then it is also a critical point (a global minimum) of the parameteric space, since $$\frac{\partial f}{\partial \theta} = 0$$ and the relation between the gradients is linear. This is a nice sanity check...
 
-However, the additional critical points come up in the situations where $$\frac{\partial f}{\partial W} = 0$$ while $$\frac{\partial f}{\partial \Psi(W)} \ne 0$$. This can happen for $$W$$s where **the linear transformation between the two gradients is not full rank**. In such a case, $$\frac{\partial \theta}{\partial W}$$ has a non-empty kernel and non-zero canonical gradients can be mapped to zero parameteric gradients, which means that we get a critical point where there is no such critical point in the canonical space.
+However, the additional critical points come up in the situations where $$\frac{\partial f}{\partial W} = 0$$ and $$\frac{\partial f}{\partial \psi(W)} \ne 0$$. Since the connection between the gradients is through a matrix multiplication, **this can happen only for $$W$$s for which the linear transformation between the two gradients is not full rank**. In such a case, $$\frac{\partial \theta}{\partial W}$$ has a non-empty kernel and non-zero canonical gradients can be mapped to zero parameteric gradients, which means that we get a critical point where there is no such critical point in the canonical space.
 
 ### The Formation of "Ghost" Saddle Points
 
@@ -125,23 +125,23 @@ To understand this, we need to more explicitly define $$\frac{\partial \theta}{\
 
 This happens for example when two row vectors of the same weight matrix in a neural network are identical/parallel (meaning two neurons are identical) - in such a case the two sets of columns will be linearly dependent. Another example can be "dead neurons" in ReLU networks - these neurons are always zero and so the outgoing weights from them don't effect the actual model (and so their column is a zero vector).
 
-In practice, when the neural network is large enough and the initialization is good, we don't see this happening and the network is able to converge to a global minimum (with a loss of zero). Hui Jiang build on the above kind of reasoning in his [paper][Jiang] to explain why highly expressive neural networks don't get stuck in local minima even though there are so many in the loss landscape.
+In practice, when the neural network is large enough and the initialization is good, we don't see this happening and the network is able to converge to a global minimum (with a loss of zero). Hui Jiang built on the above kind of reasoning in his [paper][Jiang] to explain why highly expressive neural networks don't get stuck in local minima even though there are so many in the loss landscape.
 
 ### The Exploding and Vanishing Gradients Problem
 
 Just like we explored the loss landscape using $$\frac{\partial \theta}{\partial W}$$, we can do the same sort of analysis to explain more generally why there are exploding and vanishing gradients.
 
-Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable to believe (and it is the case in practice) that there are many $$W$$s for which the operator norm of $$\frac{\partial \theta}{\partial W}$$ is very large or very small. In such cases even though the canonical gradient is of a reasonable norm (assuming $$x$$ has bounded norm), we could have $$\frac{\partial \theta}{\partial W}$$ increase/decrease the norm of the gradient considerably, causing the gradient to vanish or explode.
+Since $$\frac{\partial \theta}{\partial W}$$ depends on $$W$$, it is reasonable to believe (and it is the case in practice) that there are many $$W$$s for which the operator norm of $$\frac{\partial \theta}{\partial W}$$ is very large or very small. In such cases even though the canonical gradient is of a reasonable norm (assuming $$x$$ has bounded norm), $$\frac{\partial \theta}{\partial W}$$ could still increase/decrease the norm of the gradient considerably, causing the gradient to vanish or explode.
 
 ## Further Reading
 
-This sort of comparison between deep and canonical representations is used to both understand why neural networks are able to reach global minima of the loss landscape, and recently to start showing why they generalize well. In the next posts we'll try exploring how we can develop optimization algorithms using this view, that hopefully perform better than SGD on the deep representation.
+This sort of comparison between deep and canonical representations is used to both understand why neural networks are able to reach global minima of the loss landscape, and recently to start showing why they generalize well. In the next posts we'll try exploring how we can develop optimization algorithms using this view.
 
 ### Deep Linear Networks
 
 A few papers from Sanjeev Arora and Nadav Cohen, along with other collaborators, address the dynamics of optimizing deep linear networks (deeper than our linear example). 
 
-The [first paper][Nadav1] studies depth and it's effect on optimization. It shows that under certain assumptions on the weight initialization, depth acts as a preconditioning matrix at every gradient step (similar to the PSD matrix we saw in our small example). They also show that this kind of preconditioning cannot be attained by regularizing some type of norm of the canonical model - over-parameterization it is a different kind of animal.
+The [first paper][Nadav1] studies depth and it's effect on optimization. It shows that under certain assumptions on the weight initialization, depth acts as a preconditioning matrix at every gradient step (similar to the PSD matrix we saw in our small example). They also show that this kind of preconditioning cannot be attained by regularizing some type of norm of the canonical model - over-parameterization seems to be a different kind of animal than norm-based regularization.
 
 In the [second paper][Nadav2], the authors extend their results and show a convergence proof for deep linear networks under reasonable conditions on the random initialization.
 
@@ -151,9 +151,9 @@ In their recent, [third paper][Nadav3], they move to studying generalization by 
 
 This sort of analysis is very nice for linear networks where we can clearly define the canonical representation, which happens to be linear and behaves nicely. However, when we move to deep ReLU networks for example, we don't even know how to properly describe the canonical representation, and it is incredibly high dimensional. Still, there are a couple of works that try to use the connection between the two spaces to explain why SGD works in the deep representation.
 
-In Hui Jiang's [paper][Jiang], the analysis of $$\frac{\partial \theta}{\partial W}$$ (refered to as the "disparity matrix") is used to explore the loss landscape of general neural networks, assuming they are expressive enough. The canonical representation that is used is the Fourier representation of functions over the input space (which is also linear and nicely behaved). Assuming the family of neural networks $$\epsilon$$-convers that Fourier space (a strong assumption), this suggests that under a random initialization it would be very hard to have the diparity matrix not be full rank, and therefore we shouldn't be surprised that optimizing with SGD finds the global minimum.
+In Hui Jiang's [paper][Jiang], the analysis of $$\frac{\partial \theta}{\partial W}$$ (refered to as the "disparity matrix") is used to explore the loss landscape of general neural networks, assuming they are expressive enough. The canonical representation that is used is the Fourier representation of functions over the input space (which is also linear and nicely behaved). Assuming the family of neural networks $$\epsilon$$-convers that Fourier space (a strong assumption), this suggests that during optimization it would be very hard to have the diparity matrix not be of full rank, and therefore we shouldn't be surprised that optimizing with SGD finds the global minimum.
 
-Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks in order to start showing the connection between the parameteric space and canonical space (referred to as "realization space") for an actual neural network. The main result shows "inverse stability" of the shallow neural network under certain, mild conditions on the weights. Informally, inverse stability is the property such that for a given parameterization $$W$$ and it's corresponding canonical representation $$\theta$$, all close canonical representations to $$\theta$$ have a corresponding parametric representation near $$W$$. Such a property suggests that optimizing in the parameteric space should behave like optimization in the canonical space. Another interesting thing in this paper, is the fact that there is explicit discussion of the fact that while the canonical space is linear (as we saw throughout this blog), shallow ReLU networks aren't expressive enough to fill that entire space. This means that the optimization objective in the canonical space is a convex loss function with a non-convex feasible set of solutions. We'll see another, more digestible example of this in the next blog post.
+Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks in order to start showing the connection between the parameteric space and canonical space (referred to as "realization space") for an actual neural network. The main result shows "inverse stability" of the shallow neural network under certain, mild conditions on the weights. Informally, inverse stability is the property such that for a given parameterization $$W$$ and it's corresponding canonical representation $$\theta$$, all canonical representations close to $$\theta$$ have a corresponding parametric representation close to $$W$$. Such a property suggests that optimizing in the parameteric space should behave like optimization in the canonical space. Another interesting thing in this paper, is that there is explicit discussion of the fact that while the canonical loss surface is convex (as we saw throughout this blog), shallow ReLU networks aren't expressive enough to fill the entire canonical space. This means that the optimization objective in the canonical space is a convex loss function with a non-convex feasible set. We'll see another, more digestible example of this in the next blog post.
 
 ---
 ---
