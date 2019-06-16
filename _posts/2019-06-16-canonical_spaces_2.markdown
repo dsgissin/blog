@@ -167,24 +167,33 @@ To see if the projected SGD algorithm for the quadratic model is better than reg
 
 {% include image.html path="canonical_spaces_2/binary_mnist.png" %}
 
-We can see several interesting things, the first of which is that the projection algorithm seems to perform much better than regular SGD in this low-rank regime.
+We can see several interesting things, the first of which is that the projection algorithm seems to perform much better than regular SGD in this low-rank regime. Not only is the accuracy much better, but the variance in the learning curve is smaller and more consistent. This result is reproduced under different initializations and learning rates. However, the complete breakdown of SGD we saw with the toy example does not happen with high dimensional problems. 
 
-TODO: show MNIST experiment results (explain that we add a linear layer and maybe try running this without a linear layer to see what will happen).
-TODO: explain that Adam counters most of the problems with SGD here...
-TODO: discuss the initialization a little, and explain that the regular SGD was initialized regularly and the projected was initialized with zeros
+Another interesting thing to note is the model's norm in the canonical space. The projected SGD has an initial large boost to the norm, caused by the large gradient of the loss function. It then changes very slowly, searching for the optimum. The regular SGD algorithm however, has a slowly increasing norm that is caused by the gradient being dampened by the small norm of the model. Once the model grows larger, the gradients grow as well, causing the optimization to be less stable.
+
+However, we shouldn't get too excited - if we use Adam as our optimizer for the deep representation, the optimization becomes more stable and the results are very similar. Also, when the rank we use is larger ($$r=50$$), the advantage of the projected SGD algorithm over Adam dissappears completely. This is reasonable, since Adam can adjust the learning rate to be smaller when the model has a larger norm...
+
+TODO: what happens when r=2?
 
 ## Multi-Class and Deep Polynomial Networks
 
+So far, the projected SGD algorithm and the quadratic model were derived for binary classification (assuming that the function has only one output). For completeness, the model should be expanded to have multiple outputs. This will allow doing multi-class classification, but more importantly allow for the quadratic model to be embedded into a deep neural networks as a "quadratic layer".
 
-TODO: start with defining the model, and then show what the canonical representation is.
-TODO: the quadratic model has similar invariances as the linear model (permutations and multiplications by a scalar)
-TODO: talk about how this model has been studied in the past, mostly for theoretical purposes. The landscape was shown to have only strict saddle points, meaning all non-global minima are unstable minima.
-TODO: describe how we can optimize over the canonical representation using projections.
-TODO: show that optimizing in the canonical representation leads automatically to easy proofs to existing claims about SGD. Also show that we require no special initializations for our proof...
-TODO: Discuss how low rank parameterization has no proof in the literature for SGD, and connect it to how we are optimizing over a non-convex set.
-TODO: Look at the rank-1 2x2 example and show a counter example for the problems of optimizing with regular SGD (this holds only for toy examples to be honest).
+One would think that adding additional outputs shouldn't be a big deal, but it's not as straightforward as one would hope and requires some changes to the algorithm and model...
 
-TODO: move to multiclass and possibly deep models, explain about the problems with the projection as it is and then explain about the GLRAM projections. Maybe derive the projection for the original low rank 1 output model and then explain why the orthogonal assumption doesn't work for multi-class...
+### Eigendecompositions Aren't Enough
+
+### The GLRAM Projection Algorithm
+
+### The Multi-Class Quadratic Model
+
+### Deep Polynomial Networks
+
+TODO: explain how this is a play between the canonical representation and the deep one, treating every layer in it's canonical form but not expressing the actual canonical form of the entire model...
+
+### Experiments & Issues Scaling Up
+
+TODO: run multiclass examples without the linear layer and see if we improve... Do the same for convolutional layers and CIFAR
 
 TODO: explain in summary that we got good algorithms, but in general it seems that working in the canonical space isn't something that can scale up to deep networks... So maybe what we should do is try to make the dynamics in parameteric space more canonical (in the next post).
 

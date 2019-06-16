@@ -2,7 +2,7 @@
 layout: post
 title: Over-Parameterization and Optimization - A Gentle Start
 comments: true
-tags: optimization deep-learning
+tags: optimization deep-learning polynomial-networks
 ---
 
 > Deep, over-parameterized networks have a crazy loss landscape and it's hard to say why SGD works so well on them. Looking at a canonical parameter space may help.
