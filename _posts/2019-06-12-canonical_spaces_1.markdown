@@ -147,6 +147,8 @@ In the [second paper][Nadav2], the authors extend their results and show a conve
 
 In their recent, [third paper][Nadav3], they move to studying generalization by showing that depth biases the optimization towards low rank solutions for a matrix completion/sensing task. There have been previous results showing that SGD creates this sort of bias and it is a strong belief today that SGD is a main factor in the generalization of neural networks. This work shows that not only does SGD bias us towards simple solutions, but that over-parameterization may also be a factor. As in the first paper, their results suggest that depth is a different animal than regularizing a norm (nuclear or otherwise), being more biased towards low rank than norm regularizations.
 
+In addition, a [recent paper][Srebro] by Nathan Srebro's group analyzes an even simpler over-parameterization of the linear function, where the weight vector is an element-wise multiplication of two weight vectors ($$w = v \odot u$$). This over-parameterization acts in a similar way to the one explored in our example, only the PSD matrix multiplying the gradient is restricted to be diagonal (but again, the norm of the gradient depends on the parameterization). In their paper, the authors analyze the optimization at different initialization scales and show that in the limit of large initial weights, the model converges to the minimal $$\ell_{2}$$ solution, while in the limit of small initial weights, the model converges to the minimal $$\ell_{1}$$ solution, continuing the line of results showing that over-parameterization leads to clearly different implicit regularization. They also derive an analytic norm that is minimized for every scale of initialization, showing that the initialization-dependent solution moves from the minimal $$\ell_{2}$$ to the minimal $$\ell_{1}$$ continuously as we decrease the scale of initialization of the network.
+
 ### Non-Linear Networks
 
 This sort of analysis is very nice for linear networks where we can clearly define the canonical representation, which happens to be linear and behaves nicely. However, when we move to deep ReLU networks for example, we don't even know how to properly describe the canonical representation, and it is incredibly high dimensional. Still, there are a couple of works that try to use the connection between the two spaces to explain why SGD works in the deep representation.
@@ -169,3 +171,4 @@ Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks i
 [Nadav2]: https://arxiv.org/pdf/1810.02281.pdf
 [Nadav3]: https://arxiv.org/pdf/1905.13655.pdf
 [Julius]: https://arxiv.org/pdf/1905.09803.pdf
+[Srebro]: https://arxiv.org/pdf/1906.05827.pdf
