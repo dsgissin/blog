@@ -139,7 +139,7 @@ We can't guarantee convergence for our projected algorithm when $$r<d$$ (the los
 
 If you want to delve deeper into this optimization direction, you can take a look at [this paper][projected_SGD_paper] which develops a similar algorithm for the quadratic model, with a different projection step that tries to make the algorithm faster. They also give convergence guarantees under the assumption of Gaussian input and the squared loss.
 
-### A Toy Example of the Low-Rank Domain
+### Toy Examples in the Low-Rank Domain
 
 The problem of optimizing a convex loss over a non-convex feasible set can be something hard to visualize. In these kinds of situations, it's often advantageous to look at a toy example which should make thinks clearer and more visual. It's also about time we saw a picture in this blog series...
 
@@ -163,7 +163,17 @@ We then minimize this loss, which is convex in the canonical spcae, using both o
 
 This is interesting - since the initial matrix and optimum matrix sit on separate manifolds, the optimization process had to go through the origin in order to reach the optimum. For the projected SGD algorithm this wasn't a problem and the algorithm went through the origin (which isn't a critical point) and reached the optimal matrix. However, the regular SGD has a critical point at the origin, and the closer we are to the origin the smaller the norm of the weights are, which cause the gradients to be small. The regular SGD experienced a vanishing gradient problem when it got close to the origin, causing the optimization to get stuck at the origin and not reach the second manifold...
 
-This toy experiment shows how projected SGD for our model can be a more reasonable choice, but this sort of pathological issue of SGD won't necessarily replicate in higher dimensions. We can check this using a binary MNIST problem.
+You may say that this problem is highly hand-crafted, and that it only happens when we restrict the matrix to be of rank-$$1$$. If it were full rank and able to span the entire canonical space, there should be no problem in optimizing the model with regular SGD because it wouldn't be drawn into the origin and get stuck. The thing is, for SGD in the regular parameterization, every neuron's output is restricted to the rank-$$1$$ manifold - the model is able to span the entire space only because it is a summation of these neuron outputs. For example, if we had two neurons on the same side of the manifold and the optimum was in the other halfspace, every neuron would have to separately cross the origin and they could both get stuck. We can see this example in the following plot, where the red line is the complete model trained with SGD, and the black lines are it's two neurons (the optimum is a rank-$$2$$ matrix this time):
+
+{% include image.html path="canonical_spaces_2/trajectories_full_rank.png" %}
+
+The last thing to note, which shows even more how the specific parameterization effect SGD, is that this pitfall of the dynamics can be avoided by careful scaling of $$\alpha$$, $$W$$ and the learning rate!
+
+If we keep the same initialization but scale $$W$$ up and $$\alpha$$ down such that the model doesn't change, the dynamics won't get stuck at the origin because the gradients of $$\alpha$$ won't vanish - $$ \frac{\partial f}{\partial \alpha_{i}} = (w_{i}^{T}x)^{2} $$. However, if we adversarially choose the optimum to be such that $$W$$ has to change considerably, the optimization with SGD will still take a long time... You can see this in the next plot:
+
+{% include image.html path="canonical_spaces_2/trajectories_full_rank_success.png" %}
+
+All of these experiments make us see that SGD in the deep representation can work, but it doesn't work out of the box and requires careful understanding of the effects of the parameterization on the dynamics of optimization. This can make us want to go all in on the projection algorithm, but these sorts of pathological issue of SGD won't necessarily replicate in higher dimensions. We can check this using a binary MNIST problem.
 
 ### MNIST Experiments
 
@@ -171,17 +181,13 @@ To see if the projected SGD algorithm for the quadratic model is better than reg
 
 {% include image.html path="canonical_spaces_2/binary_mnist.png" %}
 
-We can see several interesting things, the first of which is that the projection algorithm seems to perform much better than regular SGD in this low-rank regime. Not only is the accuracy much better, but the variance in the learning curve is smaller and more consistent. This result is reproduced under different initializations and learning rates. However, the complete breakdown of SGD we saw with the toy example does not happen with high dimensional problems. 
+We can see several interesting things, the first of which is that the projection algorithm seems to perform much better than regular SGD in this low-rank regime. Not only is the accuracy much better, but the variance in the learning curve is smaller and more consistent. This result is reproduced under different initializations and learning rates, but I admit that I didn't try playing around with the initialization like in the toy examples (I just used a standard Glorot initialization), and that could have improved the performance of SGD. We see that the complete breakdown of SGD we saw with the toy example does not happen with this high dimensional problem, but it is possible that the search space was restricted by the initializations of $$\alpha$$ that predetermined the manifold that every neuron will sit on, leading to a sub-optimal solution. 
 
-Another interesting thing to note is the model's norm in the canonical space. The projected SGD has an initial large boost to the norm, caused by the large gradient of the loss function. It then changes very slowly, searching for the optimum. The regular SGD algorithm however, has a slowly increasing norm that is caused by the gradient being dampened by the small norm of the model. Once the model grows larger, the gradients grow as well, causing the optimization to be less stable.
+Another interesting thing to note is the model's norm in the canonical space. The projected SGD has an initial large boost to the norm, caused by the large gradient of the loss function. It then changes very slowly, searching for the optimum. The regular SGD algorithm however, has a slowly increasing norm that is caused by the gradient being dampened by the initially small norm of the model. Once the model grows larger, the gradients grow as well, causing the optimization to be less stable.
 
-However, we shouldn't get too excited - if we use Adam as our optimizer for the deep representation, the optimization becomes more stable and the results are very similar. Also, when the rank we use is larger ($$r=50$$), the advantage of the projected SGD algorithm over Adam dissappears completely. This is reasonable, since Adam can adjust the learning rate to be smaller when the model has a larger norm...
+However, we shouldn't get too excited - if we use Adam as our optimizer for the deep representation, the optimization becomes more stable and the results are very similar to the projection algorithm. This is reasonable, since Adam can adjust the learning rate to be smaller when the model has a larger norm. Also, when the rank we use is larger ($$r\approx50$$), the advantage of the projected SGD algorithm over SGD dissappears completely. This can possibly be attributed to the fact that when $$r$$ is large, we have enough initial neurons in every manifold to express the optimal matrix...
 
-### Summary
-
-TODO: "next time we'll generalize to multi-class and so on"
-
-TODO: add an image of a neural network diagram of our model...
+Still, this can make us hopeful about using this projected SGD algorithm in practice with these quadratic functions, and maybe even incorporate these models into a deep neural network. In order to do that and make our model and optimization algorithm practical, we need to generalize them such that they work with multiple outputs. This turns out not to be so straightforward, and we'll tackle it in the next post.
 
 ---
 ---

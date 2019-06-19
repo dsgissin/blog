@@ -63,7 +63,7 @@ So, our model is a bit less "neural networky" since it has vector activations in
 
 Allowing $$S$$ to be symmetric instead of diagonal introduces more parameters to our model, so we should make a comparison between the two models to try and see when the new model is reasonable.
 
-The original single-output model has $$W \in \mathbb{R}^{r \times d}$$ and $$\alpha \in \mathbb{R}^{r}$$, which means that overall we had $$r(d+1)$$ parameters. Assuming we have $$n$$ outputs and train the old model with regular SGD, $$\alpha$$ becomes a matrix and the number of parameters becomes $$ N_{old} = r(d+n) $$. The new model has the same $$W$$ matrix, but this time every $$S$$ requires $$ r(r+1) $$ parameters. This means that the number of parameters for the new model is $$ N_{new} = dr + nr(r+1) $$
+The original single-output model has $$W \in \mathbb{R}^{r \times d}$$ and $$\alpha \in \mathbb{R}^{r}$$, which means that overall we had $$r(d+1)$$ parameters. Assuming we have $$n$$ outputs and train the old model with regular SGD, $$\alpha$$ becomes a matrix and the number of parameters becomes $$ N_{old} = r(d+n) $$. The new model has the same $$W$$ matrix, but this time every $$S$$ requires $$ \frac{r(r+1)}{2} $$ parameters. This means that the number of parameters for the new model is $$ N_{new} = dr + n\frac{r(r+1)}{2} $$
 
 If we compare the two models asymptotically in parameter count, we get that $$ N_{old} = O(rd + rn) $$ and $$ N_{new} = O(rd + r^{2}n) $$. This means that the two models are comparable in parameter count when $$ r \approx \sqrt{d} $$.
 
@@ -81,19 +81,25 @@ However, can we bound the new model's expressivity using the old model with more
 
 The answer is yes!
 
-We can build a basis for all symmetric matrices in $$\mathbb{R}^{r \times r}$$, made up of rank-1 matrices. Since the space of symmetric matrices is $$r(r+1)$$ dimensional, we can build such a basis using $$r(r+1)$$ matrices. One possibility for such a basis, is the following - $$ \forall j \le i: (e_{i}+e_{j})(e_{i}+e_{j})^{T} $$.
+We can build a basis for all symmetric matrices in $$\mathbb{R}^{r \times r}$$, made up of rank-1 matrices. Since the space of symmetric matrices is $$\frac{r(r+1)}{2}$$ dimensional, we can build such a basis using $$\frac{r(r+1)}{2}$$ matrices. One possibility for such a basis, is the following - $$ \forall j \le i: (e_{i}+e_{j})(e_{i}+e_{j})^{T} $$.
 
-Now that we have such a basis, we can construct an old quadratic model with $$r(r+1)$$ hidden neurons in the following way: 
+Now that we have such a basis, we can construct an old quadratic model with $$\frac{r(r+1)}{2}$$ hidden neurons in the following way: 
 
-We start with the original $$W$$ from a given new model and get an output of $$r$$ hidden neurons. Now, we add another matrix multiplication $$U$$ that has $$r(r+1)$$ outputs, each one being a basis vector. The two matrices can be multiplied to form the model's actual $$W$$ matrix, which is followed by the squared activation. This construction causes the hidden layer's activations to be the projection of $$(Wx)(Wx)^{T}$$ on every basis matrix. Since the basis spans the space of symmetric matrices in $$\mathbb{R}^{r \times r}$$, every symmetric matrix can be expressed as a linear combination of these activations and so every $$S_{i}$$ can be encoded using an $$\alpha$$ vector over the hidden outputs.
+We start with the original $$W$$ from a given new model and get an output of $$r$$ hidden neurons. Now, we add another matrix multiplication $$U$$ that has $$\frac{r(r+1)}{2}$$ outputs, each one being a basis vector. The two matrices can be multiplied to form the model's actual $$W$$ matrix, which is followed by the squared activation. This construction causes the hidden layer's activations to be the projection of $$(Wx)(Wx)^{T}$$ on every basis matrix. Since the basis spans the space of symmetric matrices in $$\mathbb{R}^{r \times r}$$, every symmetric matrix can be expressed as a linear combination of these activations and so every $$S_{i}$$ can be encoded using an $$\alpha$$ vector over the hidden outputs.
 
 This construction is the equivalent of taking the input and raising it explicitly to the degree-2 polynomial linear space, which allows for a linear function to represent any degree-2 polynomial in that space. This construction finally gives us the two-way containment we wanted, namely:
 
-$$ \mathcal{H}_{diag}^{d,r,n} \subset \mathcal{H}_{sym}^{d,r,n} \subset \mathcal{H}_{diag}^{d,r(r+1),n} $$
+$$ \mathcal{H}_{diag}^{d,r,n} \subset \mathcal{H}_{sym}^{d,r,n} \subset \mathcal{H}_{diag}^{d,\frac{r(r+1)}{2},n} $$
 
-We see that while the two models are different in many ways, they are still simply two ways of describing degree-2 polynomials, and so they aren't so different. This also gives us an understanding of the difference in parameter count between the two models - if we want the old model to be as expressive as the new model, we need to make it have a similar amount of parameters overall (have $$r(r+1)$$ hidden neurons, leading to similar parameter count).
+We see that while the two models are different in many ways, they are still simply two ways of describing degree-2 polynomials, and so they aren't so different. This also gives us an understanding of the difference in parameter count between the two models - if we want the old model to be as expressive as the new model, we need to make it have a similar amount of parameters overall (have $$\frac{r(r+1)}{2}$$ hidden neurons, leading to similar parameter count).
 
+#### Optimization With SGD
 
+The last thing to say about the new model before we start optimizing it with projections, is that this new parameterization helps us in solving one of the failures we encountered in optimizing the old model with SGD.
+
+The old model's element-wise activations forced every neuron's output to sit on the rank-$1$ manifold, meaning if the optimal solution required the neuron to sit on the different side of the manifold, that neuron had to move through the origin and potentially get stuck. This new parameterization doesn't separate the neurons anymore, and so the model isn't restricted to be a sum of explicit rank-$$1$$ matrices. 
+
+Of course, the possible problem of vanishing and exploding gradients didn't go away with this new parameterization...
 
 ## The GLRAM Projection Algorithm
 
@@ -101,23 +107,100 @@ Now that we've defined our new model and convinced ourselves that it isn't that 
 
 ### GLRAM's Original Objective - Dimensionality Reduction
 
+GLRAM was originally developed as a sort of alternative to SVD, when the data we have is in matrix form. This is naturally relevant for data such as images, MRI data and other possible time-series data. For our examples and for simplification, we will assume the data is a **symmetric matrix** of size $$n \times n$$ image - $$X \in \mathbb{R}^{n \times n}$$.
+
+If we wanted to run SVD/PCA in order to reduce the dimensions of the data to $$r^{2} < n^{2}$$, we would have to flatten every image to a vector in $$\mathbb{R}^{n^{2}}$$ and then find the optimal matrix $$U \in \mathbb{R}^{r^{2} \times n^{2}}$$ for the following optimization objective:
+
+$$ \underset{U}{argmin} \sum_{i=1}^{m}|| vec(X_{i}) - U^{T}Uvec(X_{i}) ||^{2} $$
+
+The lower dimensional representation of $$X$$ is then simply $$Uvec(X)$$. This has two issues - first, $$U$$ has to be huge, causing the memory and time of the algorithm to be unnecessarily large. Second, $$U$$ treats the data as one-dimensional, ignoring the structure of the data.
+
+The solution offered by GLRAM, is to treat the data in it's matrix form and reduce it from a matrix in $$ \mathbb{R}^{n \times n}$$ to a matrix in $$ \mathbb{R}^{r \times r}$$. The data is reduced in dimension by a multiplication with a matrix $$W \in \mathbb{R}^{d \times r} $$ from both sides. The optimization objective changes to:
+
+$$ \underset{U}{argmin} \sum_{i=1}^{m}|| X_{i} - W^{T}WX_{i}W^{T}W ||_{F}^{2} $$
+
+The lower dimensional representation of $$X$$ becomes $$WXW^{T} \in \mathbb{R}^{r \times r}$$. Note that we are able to reduce the dimension of the data to the same number of dimensions while using $$rd$$ parameters instead of $$r^{2}d^{2}$$ parameters, which is a huge savings in parameters and runtime. The GLRAM ransformation is linear like SVD, which means it is less expressive than SVD. However, because it treats the data as matrices and looks at rows and columns instead of single elements, it has a good inductive bias with respect to the data and thus performs well as a compression algorithm.
+
+While this algorithm was originally designed for compressing data in matrix form, it is very useful for us as a projection algorithm since it's objective is exactly the objective we have!
+
+For a quadratic layer with $$d$$-dimensional input, $$r$$-dimensional hidden layer and $$m$$ outputs, we can treat the outputs as $$m$$ rank-$$r$$ matrices $${A_{i}}_{i=1}^{m}$$. We are looking for a weight matrix $$W \in {\mathbb{R}^{r \times d}}$$ and matrices $${S_{i}\mathbb{R}^{r \times r}}_{i=1}^{m}$$ such that the projection pbjective is minimized:
+
+$$ \underset{W,S}{argmin} \sum_{i=1}^{m}|| A_{i} - WS_{i}W^{T} ||_{F}^{2} $$
+
+It turns out, that given an orthogonally-columned $$W$$ (not losing generality here), the optimal $$S_{i}$$ is $$W^{T}A_{i}W$$, which means we can rewrite our objective as just searching for the optimal $$W$$, exactly using the GLRAM objective:
+
+$$ \underset{W}{argmin} \sum_{i=1}^{m}|| A_{i} - WW^{T}A_{i}W^{T}W ||_{F}^{2} $$
+
+Once we find $$W$$, we can simply set $$S_{i}$$ using $$W$$ and $$A_{i}$$.
+
 ### The Algorithm
 
+Sadly, while projecting with a single output was analytically solvable using an eigendecomposition or SVD, once we have multiple outputs and the new quadratic model there is no analytical solution to the projection. However, it can be solved iteratively with an alternating maximization algorithm that converges consistently to a good solution (although there are no guarantees of convergence to a global optimum).
 
+The algorithm is detailed in depth in the [paper][GLRAM], but I'll quickly give the update equations here for the symmetric $$A$$ case. The algorithm iteratively updates $$W$$ by taking the top-$$r$$ eigenvectors of a matrix. The initial $$W$$ and update equations are:
+
+$$ W_{0} = eig_{r}\big( \sum_{i=1}^{m} A_{i}^{T} A_{i}  \big) $$
+
+$$ W_{t} = eig_{r}\big( \sum_{i=1}^{m} A_{i}^{T}W_{t-1}^{T} W_{t-1}A_{i} \big) $$
+
+Convergence to a fixed point can be determined by the objective function not improving by more than some $$\epsilon$$ after an iteration. When the $$d \approx 100$$, a few iterations are enough to reach convergence and 10 iterations are more than enough.
+
+This is great - we adapted our model to have multiple outputs and allow projections from the canonical space. This means we can perform projected SGD on multiple-output functions - we simply take the current model defined by $$W$$ and $${S_{i}}_{i=1}^{m}$$ and calculate it's canonical representation $${A_{i}}_{i=1}^{m}$$. We then take a gradient step for every $$A_{i}$$ using the loss function of that output and finally run GLRAM to get our new model parameterized by $$\hat{W}$$ and $${\hat{S}_{i}}_{i=1}^{m}$$.
+
+Before we run to implement our new model and bask in the glory of canonical optimization, there's one last thing we can do - see that our model is all set to be a neural network layer, embedded in any deep neural network!
 
 ## Deep Polynomial Networks
 
-TODO: explain how stacking these layers leads to higher degree polynomials - the degree is exponential in the depth!
+Our discussion now will be restricted to networks consisting of stacked quadratic layers forming a "deep polynomial network". However, the concepts introduced here are more general and are relevant for any neural network for which we want to add a quadratic layer - you can have quadratic layers followed by other activation functions, pooling operators, skip connections and whatever you want.
+
+### Stacking Layers
+
+Notice how if we stacked two quadratic layers, feeding the output of one layer into the next, the overall model will be a degree-$$2$$ polynomial of degree-$$2$$ polynomials. This is, as you might have guessed, a degree-$$4$$ polynomial.
+
+We can do this over and over again, and in every layer we add the degree of the polynomial doubles. This means that with a relativaly small number of parameters we are able to represent polynomials of degree exponential in the depth of our network. We can't represent all high-degree polynomials of course - only those which are, informally speaking, a composition of lower degree polynomials.
+
+You may worry that this stacking of layers only allows for a combination of monomials of degree exactly $$2^{L}$$, but we can bypass this problem by adding skip-connections over every quadratic layer, with a fully connected layer. This kind of model will now be able to represent polynomials with monomials up to degree $$2^{L}$$.
+
+But we are faced with a big problem - the canonical space of a depth-$$L$$ model is no longer the space of $$d \times d$$ symmetric matrices - it is the space of degree-$$2^{L}$$ polynomials over $$d$$ variables. This space has $$O(d^{2^{L}})$$ parameters - this is super exponential in the depth of our network and is something that we clearly can't deal with (we can neither store this many parameters or derive a projection algorithm for such a model). 
+
+This means we'll have to make a tradeoff - we won't optimize in the canonical space of the entire model, but every layer will be optimized in it's own independent canonical space...
 
 ### Combining Backpropagation and GLRAM Projections
 
-TODO: explain how this is a play between the canonical representation and the deep one, treating every layer in it's canonical form but not expressing the actual canonical form of the entire model...
+Let's zoom in on a single quadratic layer somewhere in our deep polynomial network - the layer indexed by $$t$$. It has a $$n_{t-1}$$ dimensional inputs, $$r_{t}$$ hidden layer dimensions and $$n_{t}$$ outputs. The output of the layer before will be called $$h_{t-1}(x)$$, and the output of this layer will be called $$h_{t}(x)$$.
 
-### Experiments & Issues Scaling Up
+{% include image.html path="canonical_spaces_3/nn.png" %}
+
+As part of the deep network, to participate in backpropegation we need to be able to compute these two things for this layer - $$ \frac{\partial \ell}{\partial \{ W,S \}} $$ and $$ \frac{\partial \ell}{\partial h_{t-1}(x)} $$. Luckily for us, backpropagation gives us $$ \frac{\partial \ell}{\partial h_{t}(x)} $$ from the layer above us, so we can calculate the second gradient in the following way:
+
+$$ \frac{\partial \ell}{\partial h_{t-1}(x)} = \frac{\partial \ell}{\partial h_{t}(x)} \frac{\partial h_{t}(x)}{\partial h_{t-1}(x)} $$
+
+This $$ \frac{\partial h_{t}(x)}{\partial h_{t-1}(x)} $$ is a matrix with the follwing rows, which we know how to calculate using our parameters and the inputs to the layer:
+
+$$ \frac{\partial h_{t}(x)}{\partial h_{t-1}(x)}_{i,:} = \frac{\partial \big( h_{t-1}(x)^{T}A_{i}h_{t-1}(x) \big)}{\partial h_{t-1}(x)} = 2A_{i}h_{t-1}(x) $$
+
+This is the backpropagation part, which is the same for any parameterization of our quadratic function. However, the next part is specific to our canonical representation, and that is how we calculate the gradient of the parameters:
+
+$$ \frac{\partial \ell}{\partial A} = \frac{\partial \ell}{\partial h_{t}(x)} \frac{\partial h_{t}(x)}{\partial A} $$
+
+We already know $$ \frac{\partial \ell}{\partial h_{t}(x)} $$ from the backpropagation from the layer above, and we can calculate $$ \frac{\partial h_{t}(x)}{\partial A} $$ in the canonical space and then project the $$A$$ matrices using GLRAM!
+
+This way, we can combine GLRAM projections to update a single layer and backpropagation to propagate the loss signal between the layers.
+
+## Experiments 
+
+### Deep Convolutional Polynomial Networks
+
+### Issues Scaling Up
+
 
 TODO: run multiclass examples without the linear layer and see if we improve... Do the same for convolutional layers and CIFAR
 
 TODO: explain in summary that we got good algorithms, but in general it seems that working in the canonical space isn't something that can scale up to deep networks... So maybe what we should do is try to make the dynamics in parameteric space more canonical (in the next post).
+
+TODO: upload the code to GitHub and link to it
+
+TODO: explain that it takes much longer to optimize
 
 ---
 ---
