@@ -1,0 +1,11 @@
+---
+layout: post
+title: Discriminative Active Learning
+redirect_to:
+  - https://dsgissin.github.io/DiscriminativeActiveLearning/
+tags: active-learning deep-learning
+---
+
+> Labeling data is hard work, which means active learning is something worth knowing about... In this blog series I introduce the basic concepts of active learning, review the state of the art algorithms of today and develop a new active learning algorithm.
+
+<!--more-->

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Over-Parameterization and Optimization - From Quadratic to Deep Polynomials
+title: Over-Parameterization and Optimization III - From Quadratic to Deep Polynomials
 comments: true
 tags: optimization deep-learning polynomial-networks
 ---
@@ -147,11 +147,21 @@ Convergence to a fixed point can be determined by the objective function not imp
 
 This is great - we adapted our model to have multiple outputs and allow projections from the canonical space. This means we can perform projected SGD on multiple-output functions - we simply take the current model defined by $$W$$ and $${S_{i}}_{i=1}^{m}$$ and calculate it's canonical representation $${A_{i}}_{i=1}^{m}$$. We then take a gradient step for every $$A_{i}$$ using the loss function of that output and finally run GLRAM to get our new model parameterized by $$\hat{W}$$ and $${\hat{S}_{i}}_{i=1}^{m}$$.
 
-Before we run to implement our new model and bask in the glory of canonical optimization, there's one last thing we can do - see that our model is all set to be a neural network layer, embedded in any deep neural network!
+### But Does It Work?
+
+We went into a lot of trouble to adapt our projection algorithm to have multiple outputs, but does it actually work?
+
+We can compare the different models and optimization methods we developed on the original MNIST problem (with the entire 10 classes). We will compare the old model trained with SGD and 25 hidden neurons, the old model trained with SGD and $$\frac{25*26}{2}=325$$ hidden neurons, the new model trained with SGD and hidden $$25x25$$ dimensional matrices and the same new model trained with GLRAM projections:
+
+{% include image.html path="canonical_spaces_3/multiclass.png" %}
+
+Like in the binary case with the old projection algorithm, we see an improvement in convergence with respect to regular SGD! You can find the code to this experiment [here][code].
+
+This is great, but we're not done! The great thing about making a model that has multiple outputs and an optimization algorithm, is that we can now stack these models on top of each other. We can even use this model with our GLRAM optimization algorithm as a stand-alone neural network layer.
 
 ## Deep Polynomial Networks
 
-Our discussion now will be restricted to networks consisting of stacked quadratic layers forming a "deep polynomial network". However, the concepts introduced here are more general and are relevant for any neural network for which we want to add a quadratic layer - you can have quadratic layers followed by other activation functions, pooling operators, skip connections and whatever you want.
+Our discussion now will be restricted to networks consisting of stacked quadratic layers forming a "deep polynomial network". However, the concepts I'll introduce here are more general and are relevant for any neural network for which we want to add a quadratic layer - you can have quadratic layers followed by other activation functions, pooling operators, skip connections, convolutions and whatever you want.
 
 ### Stacking Layers
 
@@ -161,7 +171,7 @@ We can do this over and over again, and in every layer we add the degree of the 
 
 You may worry that this stacking of layers only allows for a combination of monomials of degree exactly $$2^{L}$$, but we can bypass this problem by adding skip-connections over every quadratic layer, with a fully connected layer. This kind of model will now be able to represent polynomials with monomials up to degree $$2^{L}$$.
 
-But we are faced with a big problem - the canonical space of a depth-$$L$$ model is no longer the space of $$d \times d$$ symmetric matrices - it is the space of degree-$$2^{L}$$ polynomials over $$d$$ variables. This space has $$O(d^{2^{L}})$$ parameters - this is super exponential in the depth of our network and is something that we clearly can't deal with (we can neither store this many parameters or derive a projection algorithm for such a model). 
+But we are faced with a big problem - the canonical space of a depth-$$L$$ model is no longer the space of $$d \times d$$ symmetric matrices - it is the space of degree-$$2^{L}$$ polynomials over $$d$$ variables. This space has $$O(d^{2^{L}})$$ parameters - this is super exponential in the depth of our network and is something that we clearly can't deal with (we can neither store this many parameters nor derive a projection algorithm for such a model). 
 
 This means we'll have to make a tradeoff - we won't optimize in the canonical space of the entire model, but every layer will be optimized in it's own independent canonical space...
 
@@ -187,20 +197,23 @@ We already know $$ \frac{\partial \ell}{\partial h_{t}(x)} $$ from the backpropa
 
 This way, we can combine GLRAM projections to update a single layer and backpropagation to propagate the loss signal between the layers.
 
-## Experiments 
-
-### Deep Convolutional Polynomial Networks
-
 ### Issues Scaling Up
 
+At this point, while being very promising conceptually, we run into serious problems scaling up, making this algorithm not very well suited for stacking and deep learning...
 
-TODO: run multiclass examples without the linear layer and see if we improve... Do the same for convolutional layers and CIFAR
+The main reason for this is the number of parameters that a single layer requires, which results in heavy time and space requirements. We can take a reasonable convolutional layer in the deeper parts of a network. Assuming we have $$~100$$ input dimensions and a convolutional window of size 3x3, and an output dimension of $$~100$$, a rank-10 quadratic layer would need $$~10,000$$ parameters for $$W$$ and another $$~10,000$$ parameters for the $$S$$ matrices. 
 
-TODO: explain in summary that we got good algorithms, but in general it seems that working in the canonical space isn't something that can scale up to deep networks... So maybe what we should do is try to make the dynamics in parameteric space more canonical (in the next post).
+This isn't too bad, but in order to calculate the GLRAM projections, we need to calculate the $$A$$ matrices and take their gradient in the canonical space. Each of these $$~100$$ matrices has approximately 1 million parameters, meaning **the entire layer requires storing and operating on 100 million parameters during the GLRAM projections**.
 
-TODO: upload the code to GitHub and link to it
+While the concept of GLRAM projections is exciting, it seems that it can't be easily applied to large models and is mostly relevant for small networks... :(
 
-TODO: explain that it takes much longer to optimize
+## Summary
+
+We started with an interesting premise - instead of optimizing our deep model with SGD in a parameterization which causes the loss landscape to have many critical points and weird dynamics, we can optimize in the linear canonical space and project back to the original parameterization.
+
+Eventually, this approach led us to successful optimization algorithms which put up a fight against SGD in the original parameterization, at least when the model we're optimizing is relatively small. However, we do see from the scaling issues that this sort of approach isn't sustainable for deep models and less analytical activations like ReLU. 
+
+At the end of the day when we want to train very large and deep models, we can't avoid optimizing the model in it's annoying over-parameterized form. Still, gaining a better understanding of how the optimization behaves in this space as opposed to the canonical space can help us guide the optimization to success. It can also help us in understanding what implicit bias is introduced into our optimization process.
 
 ---
 ---
@@ -212,3 +225,4 @@ TODO: explain that it takes much longer to optimize
 
 [post2]: https://dsgissin.github.io/blog/2019/06/16/canonical_spaces_2.html
 [GLRAM]: https://bit.csc.lsu.edu/~jianhua/neelavardhan.pdf
+[code]: https://github.com/dsgissin/QuadraticNetworks

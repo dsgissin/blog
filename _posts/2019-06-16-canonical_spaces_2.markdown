@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Over-Parameterization and Optimization - From Linear to Quadratic
+title: Over-Parameterization and Optimization II - From Linear to Quadratic
 comments: true
 tags: optimization deep-learning polynomial-networks
 ---
@@ -187,7 +187,10 @@ Another interesting thing to note is the model's norm in the canonical space. Th
 
 However, we shouldn't get too excited - if we use Adam as our optimizer for the deep representation, the optimization becomes more stable and the results are very similar to the projection algorithm. This is reasonable, since Adam can adjust the learning rate to be smaller when the model has a larger norm. Also, when the rank we use is larger ($$r\approx50$$), the advantage of the projected SGD algorithm over SGD dissappears completely. This can possibly be attributed to the fact that when $$r$$ is large, we have enough initial neurons in every manifold to express the optimal matrix...
 
+You can get the code of this experiment [here][code].
+
 Still, this can make us hopeful about using this projected SGD algorithm in practice with these quadratic functions, and maybe even incorporate these models into a deep neural network. In order to do that and make our model and optimization algorithm practical, we need to generalize them such that they work with multiple outputs. This turns out not to be so straightforward, and we'll tackle it in the next post.
+
 
 ---
 ---
@@ -204,3 +207,4 @@ Still, this can make us hopeful about using this projected SGD algorithm in prac
 [SGD_paper1]: https://arxiv.org/pdf/1707.04926.pdf
 [SGD_paper2]: https://arxiv.org/pdf/1803.01206.pdf
 [projected_SGD_paper]: http://www.ece.iastate.edu/~msoltani/AISTAT2017.pdf
+[code]: https://github.com/dsgissin/QuadraticNetworks

@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Over-Parameterization and Optimization - A Gentle Start
+title: Over-Parameterization and Optimization I - A Gentle Start
 comments: true
 tags: optimization deep-learning polynomial-networks
 ---
@@ -11,7 +11,7 @@ tags: optimization deep-learning polynomial-networks
 
 Recently, there have been some interesting research directions for studying neural networks by looking at the connection between their parameterization and the function they represent. Understanding the connection between these two representations of neural networks can help us understand why SGD works well in optimizing these networks, and hopefully why SGD and over-parameterization seem to lead to strong generalization...
 
-In this blog series I'll review some of these concepts using toy examples, and develop some interesting ideas for how we can use this view to try and develop new optimization algorithms for neural networks.
+In this blog series I'll review some of these concepts using toy examples, and develop some interesting ideas for how we can use this view to both develop new optimization algorithms, and explain the success of regular optimization methods for neural networks.
 
 {: class="table-of-content"}
 * TOC
@@ -37,7 +37,7 @@ We call the canonical space "canonical", because every set of parameters in it d
 
 $$w(U,v)=U^{T}v$$
 
-Note that we can't map back from the canonical space to the parameteric, because the mapping isn't bijective - a single $$w$$ has many parameterizations in the parameteric space... Also, note that while we are dealing with linear functions, the mapping between the two spaces is not linear in $${U,v}$$.
+Note that we can't map back from the canonical space to the parameteric, because the mapping isn't bijective - a single $$w$$ has many possible parameterizations in the parameteric space... Also, note that while we are dealing with linear functions, the mapping between the two spaces is not linear in $${U,v}$$.
 
 ### Gradient Dynamics Between Spaces
 
@@ -139,7 +139,7 @@ Finally, it is interesting to explore the interesting property we saw for the li
 
 The answer is yes - if we have a linear canonical representation for our model and a differentiable function mapping a parameterization to that canonical representation, all gradients of the parameterizations of the same function will be positively correlated with the canonical gradient (while not necessarily positively correlated with each other).
 
-Let's prove it - we will denote our canonical parameterization as $$\theta \in \mathbb{R}^{q}$$ and the parameteric representation as $$W \in \mathbb{R}^{p}$$. We will denote the differentiable mapping from $$W$$ to $$\theta$$ as $$\mathcal{M}:\mathbb{R}^{p} \rightarrow \mathbb{R}^{q}$$. Finally, we will denote the mapping of our input to the canonical linear space as $$\phi: \mathcal{X} \rightarrow \mathbb{R}^{q}$$.
+Let's prove it - we will denote our canonical parameterization as $$\theta \in \mathbb{R}^{q}$$ and the parameteric representation as $$W \in \mathbb{R}^{p}$$. We will denote the differentiable mapping from $$W$$ to $$\theta$$ as $$\psi:\mathbb{R}^{p} \rightarrow \mathbb{R}^{q}$$. Finally, we will denote the mapping of our input to the canonical linear space as $$\phi: \mathcal{X} \rightarrow \mathbb{R}^{q}$$.
 
 We know that the function in the canonical space is linear, so we can easily write the function before and after an infinitesimal gradient step:
 
@@ -147,27 +147,109 @@ $$ f_{c}(x) = \theta^{T}\phi(x) $$
 
 $$ \hat{f}_{c} = \theta - \eta \phi(x)$$
 
-This means that the gradient of the canonical function in the canonical space is $$\nabla f_{c} = \phi(x)$$. We will now do the same process for the parametric gradient - we will calculate the change in $$W$$ and then map the new $$\hat{W}$$ to the canonical space. The gradient of $$W$$ can be calculated in the canonical space using our mapping $$\mathcal{M}$$ and the chain rule:
+This means that the gradient of the canonical function in the canonical space is $$\nabla f_{c} = \phi(x)$$. We will now do the same process for the parametric gradient - we will calculate the change in $$W$$ and then map the new $$\hat{W}$$ to the canonical space. The gradient of $$W$$ can be calculated in the canonical space using our mapping $$\psi$$ and the chain rule:
 
-$$ f_{p}(x) = \mathcal{M}(W)^{T} \phi(x) $$
+$$ f_{p}(x) = \psi(W)^{T} \phi(x) $$
 
-$$ \frac{\partial f}{\partial W} = \frac{\partial \mathcal{M}}{\partial W} \frac{\partial f}{\partial \mathcal{M}} = \frac{\partial \mathcal{M}}{\partial W} \phi(x) $$
+$$ \frac{\partial f}{\partial W} = \frac{\partial \psi}{\partial W} \frac{\partial f}{\partial \psi} = \frac{\partial \psi}{\partial W} \phi(x) $$
 
 This means the new $$W$$ can be written in the following way:
 
-$$ \hat{W} = W - \eta \frac{\partial \mathcal{M}}{\partial W} \phi(x) $$ 
+$$ \hat{W} = W - \eta \frac{\partial \psi}{\partial W} \phi(x) $$ 
 
 We can now map that new parameterization to the canonical space and get our new canonical representation, after the gradient:
 
-$$ \hat{f}_{p} = \mathcal{M}(W - \eta \frac{\partial \mathcal{M}}{\partial W} \phi(x)) $$
+$$ \hat{f}_{p} = \psi(W - \eta \frac{\partial \psi}{\partial W} \phi(x)) $$
 
-Since $$\eta$$ is infinitesimal, we can look at a first order approximation of $$\mathcal{M}$$ around $$W$$ and neglect any higher order terms:
+Since $$\eta$$ is infinitesimal, we can look at a first order approximation of $$\psi$$ around $$W$$ and neglect any higher order terms:
 
-$$ \hat{f}_{p} = \mathcal{M}(W) + \frac{\partial \mathcal{M}}{\partial W}^{T} (\hat{W} - W) = \mathcal{M}(W) + \frac{\partial \mathcal{M}}{\partial W}^{T} (-\eta \frac{\partial \mathcal{M}}{\partial W} \phi(x)) = \mathcal{M}(W) - \eta \frac{\partial \mathcal{M}}{\partial W}^{T} \frac{\partial \mathcal{M}}{\partial W} \phi(x) $$
+$$ \hat{f}_{p} = \psi(W) + \frac{\partial \psi}{\partial W}^{T} (\hat{W} - W) = \psi(W) + \frac{\partial \psi}{\partial W}^{T} (-\eta \frac{\partial \psi}{\partial W} \phi(x)) = \psi(W) - \eta \frac{\partial \psi}{\partial W}^{T} \frac{\partial \psi}{\partial W} \phi(x) $$
 
-We see the new function after a parametric gradient is indeed different from the one after a canonical gradient - in both cases we have a function that changes by adding a vector to the original function. In the canonical gradient step, that vector was $$\nabla f_{c} = \phi(x)$$, while in the parameteric step, that vector was $$\nabla f_{p} = \frac{\partial \mathcal{M}}{\partial W}^{T} \frac{\partial \mathcal{M}}{\partial W} \phi(x)$$.
+We see the new function after a parametric gradient is indeed different from the one after a canonical gradient - in both cases we have a function that changes by adding a vector to the original function. In the canonical gradient step, that vector was $$\nabla f_{c} = \phi(x)$$, while in the parameteric step, that vector was $$\nabla f_{p} = \frac{\partial \psi}{\partial W}^{T} \frac{\partial \psi}{\partial W} \phi(x)$$.
 
-Since $$\frac{\partial \mathcal{M}}{\partial W}$$ in both cases is the Jacobian around the same $$W$$ (the initial $$W$$), $$ \frac{\partial \mathcal{M}}{\partial W}^{T} \frac{\partial \mathcal{M}}{\partial W} $$ is PSD and so the two gradients are positively correlated.
+Since $$\frac{\partial \psi}{\partial W}$$ in both cases is the Jacobian around the same $$W$$ (the initial $$W$$), $$ \frac{\partial \psi}{\partial W}^{T} \frac{\partial \psi}{\partial W} $$ is PSD and so the two gradients are positively correlated.
+
+
+## Exploring Parameterizations and Gradient Fields
+
+Before we move on to non-linear networks, it's interesting to visualize just how much the parameterization we use can effect the gradient-based optimization of our model. Earlier, we saw that playing around with the parameterization of a deep linear network without changing the underlying function can drastically change the gradient of the function. Now, we will visualize this along with other possible parameterizations of linear functions!
+
+We will visualize the dynamics by plotting the over-parameterized gradient on top of the canonical gradient. We will look at functions in $$\mathbb{R}^{2}$$ and for any original gradient value we will plot the one induced by the over-parameterization. We can look at the following example for regular canonical dynamics before we move on to more interesting dynamics:
+
+{% include image.html path="canonical_spaces_1/vec_field_regular.png" %}
+
+Every arrow's starting point in the above plot is where the original gradient ended. The arrows are scaled down a bit to make things clear, so their direction and relative size are what we should look out for... 
+
+We see that in the regular dynamics, the canonical gradients remains the same - every arrow continues to point in the direction that it started in, and every arrow around a circle of the same radius has the same size. Let's see how this changes with different parameterizations.
+
+### Squared Parameterization
+
+Following a [recent paper][Srebro] that studies the generalization effects of over-parameterization, we will look at a very simple linear function in $$\mathbb{R}^{2}_{+}$$. The canonical representation of such a function is simply $$\theta \in \mathbb{R}^{2}_{+}$$ - two positive numbers that are the coefficients of the inputs:
+
+$$ f_{\theta}(x) = \theta_{1}x_{1} + \theta_{2}x_{2} $$
+
+However, we can use a different parameterization for our function, parameterized by $$w \in \mathbb{R}^2$$:
+
+$$ \theta_{i} = w_{i}^{2} $$ 
+
+$$ f_{w}(x) = w_{1}^{2}x_{1} + w_{2}^{2}x_{2} $$
+
+This sort of parameterization is reminiscent of adding a layer to the linear neural network - the function remains the same but the gradient changes. As we saw, we can calculate how the gradient to $$\theta_{i}$$ should change when we are using this parameterization (and optimizing over $$w$$) by computing the PSD matrix $$\frac{\partial \theta}{\partial w}^{T}\frac{\partial \theta}{\partial w}$$ which multiplies the canonical gradient.
+
+This matrix is diagonal since $$\theta_{i}$$ only depends on $$w_{i}$$, and we get the following diagonal entries:
+
+$$ \Big(\frac{\partial \theta}{\partial w}\Big)_{i,i} = 2w_{i} \rightarrow \Big(\frac{\partial \theta}{\partial w}^{T}\frac{\partial \theta}{\partial w}\Big)_{i,i} = 4w_{i}^{2} $$
+
+This means that when w_{i} is large, we should expect the gradient to grow larger. On the other hand, if w_{i} is small we should expect the gradient to become smaller. This means that under this squared parameterization, the optimization is biased towards the features which are already deemed as important by the model. We can now look at the gradient field for different values of $$w$$:
+
+{% include image.html path="canonical_spaces_1/vec_field_squared.png" %}
+
+The blue arrow depicts the $$w$$ vector over the same axes. Indeed, we see that the gradients in this parmeterization are transformed so as to emphasize the gradients to parameters which are already large. In the extreme cases (top-left and bottom-right plots), we see that the function changes almost completely in the direction of the large weights, with little to no change to the small weights. This sort of parameterization **induces sparsity** - if we initialize the values of $$w$$ to be very small, then the weights more dominant in the optimization will get a head start and leave the other weights behind.
+
+### Inverse Parameterization
+
+Just like we did for the squared parameterzation, we can use the following parameterization instead:
+
+$$ \theta_{i} = \frac{1}{w_{i}}  $$
+
+$$ f_{w}(x) = \frac{1}{w_{1}}x_{1} + \frac{1}{w_{2}}x_{2} $$
+
+We can now calculate the PSD matrix in the same way and get:
+
+$$ \Big(\frac{\partial \theta}{\partial w}^{T}\frac{\partial \theta}{\partial w}\Big)_{i,i} = \frac{1}{w_{i}^{4}} $$
+
+We get the opposite of the squared parameterization - large values of $$\theta$$ are punished and their gradient is made smaller. We can see this in the gradient flow as well:
+
+{% include image.html path="canonical_spaces_1/vec_field_inverse.png" %}
+
+This parameterization has a strong bias towards weights that are relatively small in our model. It is reasonable to conjecture that this sort of parameterization is biased towards solutions with many small values for the weights, possibly minimizing the $$\ell_{\infty}$$ norm of the solution.
+
+### Polar Parameterization
+
+We would be remiss not to look at the classic $$ \mathbb{R}^{2} $$ parameterization - polar coordinates!
+
+$$ \theta_{1} = rcos(\varphi) $$
+
+$$ \theta_{2} = rsin(\varphi) $$
+
+$$ f_{polar}(x) = rcos(\varphi)x_{1} + rsin(\varphi)x_{2} $$
+
+Like before, we can calculate the Jacobian matrix and visualize the gradient field for different parameterizations (changing $$r$$ this time):
+
+{% include image.html path="canonical_spaces_1/vec_field_polar.png" %}
+
+We see that this parameterization acts differently than the previous parameterizations - when $$r=1$$, we get the canonical gradient field. However, if $$r$$ is small we get a bias of the optimization towards the direction that the model is currently pointing to. If $$r$$ is large however, the optimization biases us towards the orthogonal direction to the current model.
+
+I wouldn't try to optimize my linear model under this parameterization, but it is pretty cool...
+
+### Deep Linear Parameterization
+
+Finally, we can take a look at our original parameterization of a deep linear model, for the same function with different parameterizations determined by the invertible $$P$$ matrix. We will assume that $$U=I$$ and look at how different $$P$$ matrices change the optimization landscape:
+
+{% include image.html path="canonical_spaces_1/vec_field_deep.png" %}
+
+We see that we actually can completely change the optimization landscape by choosing different $$P$$ matrices, while the underlying function (the blue arrow) remains the same!
+
 
 ## Further Reading
 
@@ -183,7 +265,9 @@ In the [second paper][Nadav2], the authors extend their results and show a conve
 
 In their recent, [third paper][Nadav3], they move to studying generalization by showing that depth biases the optimization towards low rank solutions for a matrix completion/sensing task. There have been previous results showing that SGD creates this sort of bias and it is a strong belief today that SGD is a main factor in the generalization of neural networks. This work shows that not only does SGD bias us towards simple solutions, but that over-parameterization may also be a factor. As in the first paper, their results suggest that depth is a different animal than regularizing a norm (nuclear or otherwise), being more biased towards low rank than norm regularizations.
 
-In addition, a [recent paper][Srebro] by Nathan Srebro's group analyzes an even simpler over-parameterization of the linear function, where the weight vector is an element-wise multiplication of two weight vectors ($$w = v \circ u$$). This over-parameterization acts in a similar way to the one explored in our example, only the PSD matrix multiplying the gradient is restricted to be diagonal (but again, the norm of the gradient depends on the parameterization). In their paper, the authors analyze the optimization at different initialization scales and show that in the limit of large initial weights, the model converges to the minimal $$\ell_{2}$$ solution, while in the limit of small initial weights, the model converges to the minimal $$\ell_{1}$$ solution, continuing the line of results showing that over-parameterization leads to clearly different implicit regularization. They also derive an analytic norm that is minimized for every scale of initialization, showing that the initialization-dependent solution moves from the minimal $$\ell_{2}$$ to the minimal $$\ell_{1}$$ continuously as we decrease the scale of initialization of the network.
+A nice [paper][Shamir] by Ohad Shamir explores the optimization landscape of deep linear scalar networks, showing cases in which depth hurts optimization. In particular, Shamir shows that for certain conditions we need the number of gradient steps to convergence to be exponential in the depth of the network.
+
+Finally, a [recent paper][Srebro] by Nathan Srebro's group analyzes an even simpler over-parameterization of the linear function - the squared parameterization discussed in the previous section. In their paper, the authors analyze the optimization at different initialization scales and show that in the limit of large initial weights, the model converges to the minimal $$\ell_{2}$$ solution, while in the limit of small initial weights, the model converges to the minimal $$\ell_{1}$$ solution, continuing the line of results showing that over-parameterization leads to clearly different implicit regularization. They also derive an analytic norm that is minimized for every scale of initialization, showing that the initialization-dependent solution moves from the minimal $$\ell_{2}$$ to the minimal $$\ell_{1}$$ continuously as we decrease the scale of initialization of the network.
 
 ### Non-Linear Networks
 
@@ -206,5 +290,6 @@ Another [paper][Julius] by Julius Berner et al, analyzes shallow ReLU networks i
 [Nadav1]: https://arxiv.org/pdf/1802.06509.pdf
 [Nadav2]: https://arxiv.org/pdf/1810.02281.pdf
 [Nadav3]: https://arxiv.org/pdf/1905.13655.pdf
+[Shamir]: https://arxiv.org/pdf/1809.08587.pdf
 [Julius]: https://arxiv.org/pdf/1905.09803.pdf
 [Srebro]: https://arxiv.org/pdf/1906.05827.pdf
