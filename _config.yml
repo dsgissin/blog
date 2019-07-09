@@ -7,7 +7,7 @@ show_excerpts: true
 excerpt_separator: <!--more-->
 
 baseurl: "/blog"
-url: "https://dsgissin.github.io/" 
+url: "https://dsgissin.github.io" 
 github_username: dsgissin
 
 google_analytics: UA-122375369-2

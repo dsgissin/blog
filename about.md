@@ -15,7 +15,7 @@ comments: false
   </center>
 </figure>
 <div style="font-size:80%; text-align:center;">
-This is how I look  
+This is what I look like  
 </div>  
 
 <br/>
