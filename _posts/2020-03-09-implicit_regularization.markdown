@@ -202,7 +202,7 @@ This is an ongoing research direction that is currently restricted to relatively
 
 ## Further Reading
 
-If you found this post interesting, you're more than welcome to look into our paper[^my_paper], where we study the deep parameterization described in this post for small initializations and characterize the "incremental learning" dynamics that lead to sparse solutions. We then describe theoretically and empirically how this kind of dynamic leads many kinds of deep linear models towards sparse solutions.
+If you found this post interesting, you're more than welcome to look into [our paper][my_paper][^implicit_bias_depth], where we study the deep parameterization described in this post for small initializations and characterize the "incremental learning" dynamics that lead to sparse solutions. We then describe theoretically and empirically how this kind of dynamic leads many kinds of deep linear models towards sparse solutions.
 
 Our research builds on many other works of the past few years that you may also be interested in:
 
@@ -226,6 +226,8 @@ There's also been some initial work on nonlinear models, either empirical[^nakir
 [^gradient_flow]: Note that the plots we show are only an approximation of the trajectories of gradient descent, since gradient descent uses a non-infinitesimal learning rate. These plots actually describe the trajectories of the optimization under an infinitesimal learning rate, otherwise called "gradient flow". These dynamics are often an excellent approximation of the dynamics under small learning rates, and are a good way of getting a feel for the behavior of the optimization process.
 
 [^nonlinear_canonical]: In the [previous blog series][post1] we examined the canonical space of quadratic neural networks, and in general it is relatively simple to extend that discussion to polynomial networks that only have polynomial activations. However, once we have non-smooth activations that goes straight out of the window and we can't describe the canonical space with a finite number of parametes.
+
+[^implicit_bias_depth]: Gissin Daniel, Shalev-Shwartz Shai, Daniely Amit. The Implicit Bias of Depth: How Incremental Learning Drives Generalization. ICLR 2020.
 
 [^saxe_paper]: Andrew M Saxe, James L McClelland, and Surya Ganguli. Exact solutions to the nonlinear dynamics of learning in deep linear neural networks. arXiv preprint arXiv:1312.6120, 2013.
 
@@ -252,3 +254,4 @@ There's also been some initial work on nonlinear models, either empirical[^nakir
 [notebook]: https://github.com/dsgissin/implicit_regularization
 [rethinking_generalization]: https://arxiv.org/abs/1611.03530
 [bad_minima_exist]: https://arxiv.org/abs/1906.02613
+[my_paper]: https://arxiv.org/abs/1909.12051
