@@ -248,7 +248,7 @@ There's also been some initial work on nonlinear models, either empirical[^nakir
 [^williams_paper]: Francis Williams, Matthew Trager, Claudio Silva, Daniele Panozzo, Denis Zorin, and Joan Bruna. Gradient dynamics of shallow univariate relu networks. arXiv preprint arXiv:1906.07842, 2019.
 
 
-[post1]: https://dsgissin.github.io/blog/2019/06/16/canonical_spaces_1.html
+[post1]: https://dsgissin.github.io/blog/2019/07/01/canonical_spaces_1.html
 [notebook]: https://github.com/dsgissin/implicit_regularization
 [rethinking_generalization]: https://arxiv.org/abs/1611.03530
 [bad_minima_exist]: https://arxiv.org/abs/1906.02613
