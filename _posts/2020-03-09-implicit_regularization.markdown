@@ -9,9 +9,9 @@ tags: optimization deep-learning implicit-bias implicit-regularization
 
 <!--more-->
 
-In the [last blog series][post1], we saw how a deep parameterization can cause the gradients of our model (a quadratic neural network) to be non-convex and a bit weird. That led us to try and develop algorithms for optimizing the network in a linear space, to get all the good theoretical guarantees that classical convex optimization gives us for SGD. We saw that it’s difficult to get these algorithms to work, and even then they’re hard to generalize to large neural networks.
+In the [last blog series][post1], we saw how a deep parameterization can cause the gradients of our model (a quadratic neural network) to be non-convex and hard to manage. That led us to try and develop algorithms for optimizing the network in a linear space, to get all the good theoretical guarantees that classical convex optimization gives us for SGD. We saw that it’s difficult to get these algorithms to work, and even then they’re hard to generalize to large neural networks.
 
-This time, we will lean in to the weirdness. We will analyze how different parameterizations of the same function lead to wildly different optimization dynamics, and how this sort of analysis can help us understand how neural networks generalize so well. Since the last blog series was a bit long, we won’t assume prior knowledge.
+This time, we will lean into the non-convexity and surprising dynamics of these parameterizations. We will analyze how different parameterizations of the same function lead to wildly different optimization dynamics, and how this sort of analysis can help us understand how neural networks generalize so well. Since the last blog series was a bit long, no prior knowledge is assumed.
 
 All of the plots in this post can be recreated using the jupyter notebook [here][notebook].
 
@@ -32,55 +32,64 @@ This is the premise of the theoretical study of **implicit regularization** as a
 
 While there’s been a lot of work in recent years on implicit regularization in relatively complicated models, we will look at a very simple model - a **linear 2D model**. This will allow us to visualize the gradients of the different parameterizations while still seeing all of the interesting phenomena that exist in larger models.
 
-Our model will be parameterized by $$w \in R^{2}$$ such that for an input $$x \in R^{2}$$, the output will be:
+Our model will be parameterized by $$w \in \mathbb{R}^{2}$$, and there will be an optimal set of parameters $$w^{*} \in \mathbb{R}^{2}$$ that we wish to learn using gradient-based optimization. Our loss function will be the squared loss[^gaussian_loss]:
 
-$$ f(x) = \langle w, x \rangle = w_{1}x_{1} + w_{2}x_{2} $$
+$$ \ell(w) = \frac{1}{2}||w-w^{*}||^{2} $$
 
-Very simple. However, the fun will start when we change the parameterization of our model. There will still be a $$w \in R^{2}$$ that is equivalent to our model, but we will be optimizing over slightly different parameters each time.
+This loss is simply the squared distance to some optimal set of weights $$w^{*}$$ (which we want to learn). This setting is a simple one, but we will see interesting effects as we change the parameterization of our model. There will still be a $$w \in R^{2}$$ that is equivalent to our model, but we will be optimizing over slightly different parameters each time.
 
 
 ## The Interplay of Parameterization and Gradient Dynamics
 
-We are going to explore how the gradient dynamics of our model behave in different conditions, so let’s remember how to calculate the gradient of our weights. For a loss function $$\ell(w)$$, where $$w$$ are the linear weights above, the weights move in the negative direction of the gradient (as in gradient descent). Let’s look at an example of a loss function that we will be using[^gaussian_loss]:
-
-$$ \ell(w) = \frac{1}{2}||w-w^{*}||^{2} $$
-
-This loss is simply the squared distance to some optimal set of weights $$w^{*}$$ (which we want to learn). The negative gradient in this case is simple:
+We are going to explore how the gradient dynamics of our model behave in different conditions, so let’s remember how to calculate the gradient of our weights. For our loss function $$\ell(w)$$, the weights move in the negative direction of the gradient (as in gradient descent):
 
 $$ \nabla_{w} = w^{*} - w $$
 
-However, things look a little different when we play around with the parameterization. Instead of looking at the gradient of $$w$$, which can be seen as our canonical representation, we will describe $$w$$ with new parameters $$u$$, and optimize over these new parameters.
-
-To make things clear, let’s look at an example. We can define $$w(u)$$ in the following way:
+However, things look a little different when we play around with the parameterization. Instead of optimizing over $$w$$, we can parameterize $$w$$ using an additional parameter, $$u$$, and optimize over that. To make things clear, let’s look at an example - we can define $$w(u)$$ in the following way:
 
 $$ w_{1} = u_{1}^{3} $$
 
 $$ w_{2} = u_{2}^{3} $$
 
-Note that we didn’t really change anything - any function that we could have expressed with $$w$$ can still be expressed with an appropriate $$u$$. While this change seems innocent and harmless (and redundant), it affects the gradients of our model. To compare the parameterizations on the same footing, we would like to look at the gradient of this new parameterization in the canonical representation - we want to see how the gradient of $$w$$ looks, when we optimize over $$u$$. We can use the chain rule for that - we calculate how $$u$$ changes according to the gradient of the loss, and multiply that by how $$w$$ changes with $$u$$. Our general formula:
+Note that we didn’t really change anything - any function that we could have expressed with $$w$$ can still be expressed with an appropriate $$u$$. While this change seems innocent and harmless (and redundant), it affects the gradients of our model. Since every set of $$u$$ parameters can be described by a set of $$w$$ parameters, we can compare the two cases on the same footing. On the one hand, we will look at the gradients of the original $$w$$ model, when we are optimizing over $$w$$. On the other hand, we will look at how the gradients over $$u$$ change $$w(u)$$, the corresponding $$w$$ model to the given $$u$$ parameters.
 
-$$ \nabla_{w(u)} = \nabla_{u} \frac{dw}{du} = \nabla_{w} \frac{dw}{du}^{T}\frac{dw}{du} $$ 
+Let's look at the above example for $$w(u)$$ and derive the gradient:
 
-We will use $$\nabla_{w(u)}$$ to denote the gradient of the canonical representation of our function, when it is parametrized by $$u$$. $$\nabla_{u}$$ denotes the gradient of the loss with respect to $$u$$ and $$\nabla_{w}$$ denotes the gradient of the loss with respect to the canonical parameters (without additional parameterization). There is a delicate point here the we should stress - since we are performing gradient descent over $$u$$, the model changes according to $$\nabla_{u}$$ (which we calculate using the chain rule). However, since we want to see how the model changes compared to the canonical parameterization, we need to look at how $$w$$ changes with respect to the change we apply to $$u$$, which gives us the second application of the chain rule. For our specific example, we get:
+First, we need to calculate the gradient of $$u$$. We can do this by using the chain rule over $$w(u)$$:
 
-$$ \nabla_{w(u)_{i}} = 9 (w_{i}^{*} - u_{i}^{3}) u_{i}^{4} = 9 (w_{i}^{*} - w_{i}) w_{i}^{\frac{4}{3}} $$
+$$ \nabla_{u_{i}} = - \frac{d\ell}{dw_{i}}\frac{dw_{i}}{du_{i}} = (w^{*}_{i} - w_{i}) * 3u_{i}^{2} = 3u_{i}^{2}(w^{*}_{i} - u_{i}^{3}) $$
 
-Writing the gradients only as a function of the canonical parameters $$w$$ shows us that they are surprisingly different from the original gradients - the values of $$w$$ that we optimize are now weighted by the current value of $$w$$. We should expect that values of $$w$$ that are close to $$0$$ will change very slowly, while large values should change rapidly. This is reminiscent of the exploding/vanishing gradient problem of deep neural networks, and it is basically a toy version of it - optimizing over a product of linear parameters causes the gradient’s norm to be strongly dependent on the current values of the parameters.
+Now that we know how $$u$$ changes according to the gradient of the loss, we can ask how $$w(u)$$ changes as $$u$$ changes. We can calculate this by applying the chain rule a second time:
+
+$$ \nabla_{w(u)} = \nabla_{u} \frac{dw}{du} = 3u_{i}^{2}(w^{*}_{i} - u_{i}^{3}) * 3u_{i}^{2} = 9 (w_{i}^{*} - u_{i}^{3}) u_{i}^{4} $$ 
+
+Finally, we can invert our formula for $$w(u)$$ to get $$u_{i}(w) = \sqrt[3]{w_{i}}$$. We can use this to describe $$\nabla_{w(u)}$$ as a function of $$w$$:
+
+$$ \nabla_{w(u)_{i}} = 9 (w_{i}^{*} - w_{i}) w_{i}^{\frac{4}{3}} $$
+
+
+Writing the gradients only as a function of the $$w$$ shows us that they are surprisingly different from the original gradients - the values of $$w$$ that we optimize are now weighted by the current value of $$w$$. We should expect that values of $$w$$ that are close to $$0$$ will change very slowly, while large values should change rapidly. This is reminiscent of the exploding/vanishing gradient problem of deep neural networks, and it is basically a toy version of it - optimizing over a product of linear parameters causes the gradient’s norm to be strongly dependent on the current values of the parameters.
+
+We can follow the above procedure for a general $$w(u)$$, to get a general formula for $$\nabla_{w(u)}$$:
+
+$$ \nabla_{w(u)} = \nabla_{w} \frac{dw}{du}^{T}\frac{dw}{du} $$ 
 
 Now that we have a basic picture of the relevant concepts, we can start playing around with different parameterizations and make some nice visualizations.
 
 
 ### Playing Around With Parameterizations
 
-The nice thing about having a 2D model, is that we can plot the gradient in every point and visualize the gradient field over the loss surface. We can start simple, with the gradients over the canonical parameterization:
+The nice thing about having a 2D model, is that we can plot the gradient in every point and visualize the gradient field over the loss surface. We can start simple, with the gradients over the original $$w$$ parameters:
 
 $$ \ell(w) = \frac{1}{2} || w - w^{*} ||^{2} $$
 
 $$ \nabla_{w} = w^{*} - w $$
 
-For every $$w$$, we will plot the negative gradient with respect to the loss. Because the size of the gradients will vary a lot in our plots, we will only focus on the direction of the gradients and plot all of them in the same size. The optimal parameters will be shown as a green dot:
+For every $$w$$, we will plot the negative gradient with respect to the loss. Because the size of the gradients will vary a lot in our plots, we will only focus on the direction of the gradients and plot all of them in the same size. For all of our plots in this section we will use the same optimal parameters $$w^{*}=(3,6)$$, marked using a green dot in the plot:
 
 {% include image.html path="implicit_regularization/point_identity_param_grad_bw.png" %}
+
+Every point in the above plot corresponds to a possible model (a set of $$w$$ parameters) - the $$x$$ axis describes the $$w_{1}$$ parameter and the $$y$$ axis describes $$w_{2}$$. Every point has a line that crosses it, describing the direction of the gradient at that point, $$\nabla_{w}$$. Overall, this plot can be seen as an approximation[^gradient_flow] of the optimization trajectory of gradient descent - if we initialize our model with some $$w_{0}$$, we can follow the line from that initial point to $$w^{*}$$ to see the trajectory that gradient descent takes.
 
 Perhaps unsurprisingly, optimizing the squared loss with gradient descent moves the parameters in the Euclidean shortest path to the optimal solution. This is one of the nice things about optimizing linear models which we explored in previous posts. However, as we’ve said, the gradient field looks quite different for different parameterizations...
 
@@ -91,13 +100,13 @@ The example parameterization we saw before is a special case of a "deep" paramet
 
 For a depth $$N\ge1$$ model, we parameterize w in the following way:
 
-$$ w_{i}(u) = u_{i}^{N} $$
+$$ w_{i}(u) = \frac{1}{N^{2}} u_{i}^{N} $$
 
 Calculating the gradients as we did before, we get the following formula:
 
-$$ \nabla_{w(u)_{i}} = N^{2} w_{i}^{2-\frac{2}{N}} (w_{i}^{*} - w_{i}) $$
+$$ \nabla_{w(u)_{i}} = w_{i}^{2-\frac{2}{N}} (w_{i}^{*} - w_{i}) $$
 
-As before, we can plot the gradient field to see how the parameters move under gradient descent[^gradient_flow]. We will focus on the positive quadrant of the parameter space, to avoid having to deal with even values of N where w can’t be negative under this parameterization:
+As before, we can plot the gradient field to see how the parameters move under gradient descent. We will focus on the positive quadrant of the parameter space, to avoid having to deal with even values of N where w can’t be negative under this parameterization:
 
 {% include image.html path="implicit_regularization/2_point_deep_param_grad_bw.png" %}
 
@@ -107,16 +116,14 @@ As before, we can plot the gradient field to see how the parameters move under g
 
 Immediately we see that these gradient fields are completely different than the previous one - the parameters no longer move in straight lines and they don’t take the shortest path towards the optimal solution. We see that when the values of the two current parameters are different, the gradients become biased towards the direction of the larger value. 
 
-We can make a distinction between the case where the initial values of $$w$$ are smaller than the optimal $$w^{*}$$ and the case where they are larger. When they are smaller, the gradient field has a “rich get richer” dynamic -  large values become larger faster. When they are larger and all values need to become smaller, the larger values become smaller faster and we get a dynamic where the values are biased towards being equal. The deeper the parameterization, the stronger the phenomena.
-
-Assuming we initialize the model with small random values (as is the case in deep learning), this sort of dynamic leads to the model being sparse for a large portion of the optimization trajectory. In the extreme cases, the values are more or less learned one by one.
+Assuming we initialize the model with small random values (as is the case in deep learning), the trajectory follows a "rich get richer" dynamic - the larger value converges much faster than the small one. This sort of dynamic leads to the model being sparse for a large portion of the optimization trajectory. In the extreme cases, the values are more or less learned one by one.
 
 We see interesting phenomena for deep models, and a reasonable thing to ask is what happens when we keep increasing $$N$$...
 
 
 ### "Infinitely Deep" Parameterization
 
-We could ask how the gradient of the deep parameterization will look like for $$N \rightarrow \infty$$, assuming we normalize the loss by $$N^{2}$$ to not have gradients of infinite size. Surprisingly, this behavior happens when we parameterize our model with an exponent:
+We could ask how the dynamics of the deep parameterization will look like for $$N \rightarrow \infty$$. Surprisingly, this behavior happens when we parameterize our model with an exponent:
 
 $$ w_{i}(u) = e^{u_{i}} $$
 
@@ -157,18 +164,16 @@ The gradient field for this parameterization:
 
 {% include image.html path="implicit_regularization/point_polar_point_grad_bw.png" %}
 
-Very cool.
-
 This plot is quite different than the previous ones, and it’s hard to define a clear bias for the path that the model takes until convergence. Note how for small radii the gradients are more inclined to increase the radius, while for radii larger than 1 the gradients have a much stronger angular component. This is caused by the fact that the angular gradient is weighted by the radius, and so we get an angular behavior similar to our deep parameterization.
 
 All of these plots should drive the point home that small changes to the parameterization of the function that don’t affect the expressiveness of our model can lead to completely different optimization behavior. Still, you may ask why we should care so much about the optimization trajectory when all of these models eventually converge to the same solution. Great question.
 
 
-## Multiple ERM Solutions
+## Multiple Zero-Loss Solutions
 
-While the demonstrations above were for a toy model and a very simple loss function, and so all of the parameterizations converged to the same solution, real models (and neural networks especially) can have many different zero-loss solutions that generalize differently. We should expect parameterizations with different trajectories to converge to different solutions, which means that there would be parameterizations that generalize better than others, for the same class of functions.
+While the demonstrations above were for a toy model and a very simple loss function, and so all of the parameterizations converged to the same solution, real models (and neural networks especially) can have many different zero-loss solutions that generalize differently to unseen examples. We should expect parameterizations with different trajectories to converge to different solutions, which means that there would be parameterizations that generalize better than others, for the same class of functions.
 
-To illustrate this, let’s look at a different loss function that has multiple solutions. Instead of the squared distance from an optimal point, we will use a loss that is the squared distance from an optimal line. For an optimal line defined by the following equation:
+To illustrate this, let’s look at a different loss function that has multiple solutions. Instead of the squared distance from an optimal point, we will use a loss that is the **squared distance from an optimal line**. For an optimal line defined by the following equation:
 
 $$ aw_{1} + bw_{2} + c = 0 $$
 
@@ -178,7 +183,7 @@ $$ \ell(w) = \frac{1}{2(a^{2} + b^{2})}  (aw_{1} + bw_{2} + c)^{2} $$
 
 Note that this loss isn't unrelated to real-life models. Up to a scalar multiplication, it is equivalent to the squared loss over a dataset with a single example $$(a,b)$$ with the label $$y=-c$$. Since we have more parameters than examples ($$2$$ vs $$1$$), we can expect there to be multiple optimal solutions (infinite in our case). It is then reasonable to ask which one we converge to and what properties it has.
 
-Doing the same thing we did for the previous loss, we can plot the gradient fields of the different parameterizations (the optimal line is plotted in green):
+Doing the same thing we did for the previous loss, we can plot the gradient fields of the different parameterizations (the optimal line for $$a=-1$$, $$b=-2$$, $$c=-15$$ is plotted in green):
 
 {% include image.html path="implicit_regularization/line_identity_param_grad_bw.png" %}
 
@@ -188,12 +193,14 @@ Doing the same thing we did for the previous loss, we can plot the gradient fiel
 
 {% include image.html path="implicit_regularization/line_polar_line_grad_bw.png" %}
 
-We can see that the different parameterizations converge to very different solutions, corresponding to the behaviors we noted for the previous loss. We see that when the function class we’re using to model our data is overly expressive, the parameterization has a very big effect on the solution we end up getting when we use gradient-based optimization. This is especially relevant for real-life nonlinear neural networks, even if describing the exact bias of their parameterization is currently out of our reach.
+We can see that the different parameterizations converge to very different solutions for a given initialization, corresponding to the behaviors we noted for the previous loss. For example, the canonical parameterization over $$w$$ converges to the nearest point on the line from the initialization, while the deep parameterization clearly prefers sparser solutions...
+
+In general, We see that when the function class we’re using to model our data is overly expressive, the parameterization has a very big effect on the solution we end up getting when we use gradient-based optimization. This is especially relevant for real-life nonlinear neural networks, even if describing the exact bias of their parameterization is currently out of our reach.
 
 
 ## Conclusion
 
-Hopefully, the plots and discussion in this post made it clear that gradient-based optimization behaves very strangely under non-canonical parameterizations. In deep nonlinear networks it's hard to even describe the canonical (linear) representation[^nonlinear_canonical], so any gradient-based optimization is bound to have these effects. Assuming we are able to carefully avoid the pitfalls caused by these effects (exploding and vanishing gradients for example), we're left with particular biases towards specific types of solutions.
+Hopefully, the plots and discussion in this post made it clear that gradient-based optimization behaves very differently under non-canonical parameterizations. In deep nonlinear networks it's hard to even describe the canonical (linear) representation[^nonlinear_canonical], so any gradient-based optimization is bound to have these effects. Assuming we are able to carefully avoid the pitfalls caused by these effects (exploding and vanishing gradients for example), we're left with particular biases towards specific types of solutions.
 
 As we've hinted in this post, it seems that deep parameterizations initialized with small values relative to the solution (current deep learning best practice) bias the trajectory towards sparse solutions, and this could help explain why deep neural networks generalize so well even though they are supposedly too expressive to generalize.
 
@@ -221,7 +228,7 @@ There's also been some initial work on nonlinear models, either empirical[^nakir
 
 ## Footnotes & References
 
-[^gaussian_loss]: This loss is very simple and useful for these demonstrations, but it is also related to real-life loss functions. If we assume that there is indeed a $$w^{*}$$ that labeled our data, and that our data comes from a standard Gaussian distribution, then the expected squared loss of $$w$$ over the distribution is exactly this loss. This means that for linear models over Gaussian-like data distributions and the squared loss, the loss we'll be discussing is a good approximation of the actual loss over our data.
+[^gaussian_loss]: This model and loss are very simple and useful for these demonstrations, but it is also related to real-life models and the squared loss. We can treat $$w$$ as a vector of parameters of a linear model, such that $$f_{w}(x)=\langle w, x \rangle$$, and assume that there is indeed a $$w^{*}$$ that labeled our data. In that case, if our data comes from a standard Gaussian distribution, then the expected squared loss of $$w$$ over the data distribution is exactly this loss. This means that for linear models over Gaussian-like data distributions and the squared loss, the loss we'll be discussing is a good approximation of the actual loss over our data.
 
 [^gradient_flow]: Note that the plots we show are only an approximation of the trajectories of gradient descent, since gradient descent uses a non-infinitesimal learning rate. These plots actually describe the trajectories of the optimization under an infinitesimal learning rate, otherwise called "gradient flow". These dynamics are often an excellent approximation of the dynamics under small learning rates, and are a good way of getting a feel for the behavior of the optimization process.
 
